@@ -1,0 +1,7 @@
+{
+  "apiBaseUrl": "/api",
+  "oidcIssuer": "http://localhost:8081/realms/hooviepack",
+  "oidcClientId": "hooviepack-web",
+  "oidcRedirectUri": "",
+  "oidcPostLogoutRedirectUri": ""
+}

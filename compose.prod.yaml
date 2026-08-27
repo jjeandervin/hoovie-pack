@@ -1,0 +1,33 @@
+# compose.prod.yaml
+
+services:
+  web:
+    ports: !reset []
+    networks:
+      jeandervin:
+        aliases:
+          - hooviepack-web
+
+  api:
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      Authentication__RequireHttpsMetadata: "true"
+    ports: !reset []
+    networks:
+      jeandervin:
+        aliases:
+          - hooviepack-api
+
+  postgres:
+    ports: !reset []
+
+  keycloak:
+    ports: !reset []
+    networks:
+      jeandervin:
+        aliases:
+          - hooviepack-keycloak
+
+networks:
+  jeandervin:
+    external: true

@@ -1,0 +1,22 @@
+import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ToastService } from '../core/toast.service';
+
+@Component({
+  selector: 'hp-toast-host',
+  standalone: true,
+  template: `
+    <div class="toast-region" aria-live="polite" aria-atomic="false">
+      @for (message of toasts.messages(); track message.id) {
+        <div class="toast" [class]="'toast toast--' + message.tone" role="status">
+          <span class="toast__dot" aria-hidden="true"></span>
+          <span>{{ message.text }}</span>
+          <button type="button" class="icon-button toast__close" (click)="toasts.dismiss(message.id)" aria-label="Dismiss message">×</button>
+        </div>
+      }
+    </div>
+  `,
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class ToastHostComponent {
+  constructor(readonly toasts: ToastService) {}
+}

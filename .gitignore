@@ -1,0 +1,50 @@
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# IDE and operating-system files
+.idea/
+.vscode/
+*.suo
+*.user
+*.userosscache
+.DS_Store
+Thumbs.db
+
+# JavaScript / Angular outputs
+**/node_modules/
+**/.angular/
+**/dist/
+**/coverage/
+**/.nx/
+
+# .NET outputs and local databases
+**/bin/
+**/obj/
+**/TestResults/
+*.db
+*.db-shm
+*.db-wal
+
+# Runtime data, uploads, logs, and backups
+docker/volumes/**
+uploads/
+media/
+logs/
+backups/
+*.log
+
+# TLS and ACME material (only placeholder files are tracked)
+infra/nginx/letsencrypt/**
+!infra/nginx/letsencrypt/.gitkeep
+infra/nginx/acme/**
+!infra/nginx/acme/.gitkeep
+
+# Miscellaneous build artifacts
+*.tmp
+*.swp
+*.tar
+*.tar.gz
+

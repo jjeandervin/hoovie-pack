@@ -1,0 +1,22 @@
+@HooviePack.Api_HostAddress = http://localhost:5103
+@AccessToken = paste-keycloak-access-token
+
+GET {{HooviePack.Api_HostAddress}}/health/live
+Accept: application/json
+
+###
+
+GET {{HooviePack.Api_HostAddress}}/api/me
+Accept: application/json
+Authorization: Bearer {{AccessToken}}
+
+###
+
+GET {{HooviePack.Api_HostAddress}}/api/families
+Accept: application/json
+Authorization: Bearer {{AccessToken}}
+
+###
+
+GET {{HooviePack.Api_HostAddress}}/swagger/v1/openapi.json
+Accept: application/json

@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>20ccada3-3a45-4dd4-95ac-019edcdd3e99</UserSecretsId>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <StartDebugDependencies Condition="'$(StartDebugDependencies)' == ''">true</StartDebugDependencies>
+    <DisableFastUpToDateCheck Condition="'$(StartDebugDependencies)' == 'true'">true</DisableFastUpToDateCheck>
+    <HooviePackRepoRoot>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../../../..'))</HooviePackRepoRoot>
+  </PropertyGroup>
+
+  <Target Name="StartDebugInfrastructure"
+          BeforeTargets="Build"
+          Condition="'$(Configuration)' == 'Debug' and '$(StartDebugDependencies)' == 'true' and '$(DesignTimeBuild)' != 'true'">
+    <Message Importance="high" Text="Ensuring HooviePack PostgreSQL and Keycloak debug dependencies are healthy..." />
+    <Exec Command="docker compose --env-file &quot;$(HooviePackRepoRoot)/.env&quot; --file &quot;$(HooviePackRepoRoot)/compose.yaml&quot; up --detach --wait postgres keycloak-db keycloak" />
+  </Target>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.11" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.11" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.11" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.3" />
+  </ItemGroup>
+
+</Project>
