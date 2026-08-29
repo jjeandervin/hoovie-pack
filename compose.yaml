@@ -66,7 +66,7 @@ services:
       - hooviepack
 
   postgres:
-    image: ${POSTGRES_IMAGE:-postgres:17-alpine}
+    image: ${POSTGRES_IMAGE:-postgres:18-alpine}
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-hooviepack}
       POSTGRES_USER: ${POSTGRES_USER:-hooviepack}
@@ -86,7 +86,7 @@ services:
       - hooviepack
 
   keycloak-db:
-    image: ${POSTGRES_IMAGE:-postgres:17-alpine}
+    image: ${POSTGRES_IMAGE:-postgres:18-alpine}
     environment:
       POSTGRES_DB: ${KEYCLOAK_DB:-keycloak}
       POSTGRES_USER: ${KEYCLOAK_DB_USER:-keycloak}
