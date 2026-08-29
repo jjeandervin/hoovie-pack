@@ -93,5 +93,43 @@
       "serviceAccountsEnabled": false,
       "protocol": "openid-connect"
     }
+  ],
+  "users": [
+    {
+      "username": "demo.owner",
+      "email": "owner@hooviepack.local",
+      "firstName": "Demo",
+      "lastName": "Owner",
+      "enabled": true,
+      "emailVerified": true,
+      "requiredActions": [
+        "UPDATE_PASSWORD"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${DEMO_OWNER_PASSWORD}",
+          "temporary": true
+        }
+      ]
+    },
+    {
+      "username": "demo.member",
+      "email": "member@hooviepack.local",
+      "firstName": "Demo",
+      "lastName": "Member",
+      "enabled": true,
+      "emailVerified": true,
+      "requiredActions": [
+        "UPDATE_PASSWORD"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${DEMO_MEMBER_PASSWORD}",
+          "temporary": true
+        }
+      ]
+    }
   ]
 }

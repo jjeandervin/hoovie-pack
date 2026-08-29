@@ -45,7 +45,7 @@ docker compose up --build -d
 docker compose ps
 ```
 
-First startup can take a few minutes while images build, databases initialize, the realm imports, and EF Core applies the initial migration. The realm import does not create users. Follow startup with:
+First startup can take a few minutes while images build, databases initialize, the realm and demo users import, and EF Core applies the initial migration. Follow startup with:
 
 ```bash
 docker compose logs -f api web keycloak
@@ -61,18 +61,12 @@ Open:
 
 Swagger UI is enabled only when `APP_ENVIRONMENT=Development`. It includes an **Authorize** control for a Keycloak bearer access token; enter the token using the UI's Bearer security scheme when exercising protected endpoints. Swagger is intentionally unavailable in Production.
 
-The bootstrap admin credentials come from `KEYCLOAK_ADMIN` and `KEYCLOAK_ADMIN_PASSWORD` in `.env`. To explicitly create or reset the two local-only demo identities, set their development passwords in `.env`, start Keycloak, and run:
-
-```bash
-docker compose exec keycloak /bin/sh /opt/keycloak/seed-demo-users.sh
-```
-
-The idempotent seed creates:
+The bootstrap admin credentials come from `KEYCLOAK_ADMIN` and `KEYCLOAK_ADMIN_PASSWORD` in `.env`. Two development identities are imported when the Keycloak database is first created:
 
 - `demo.owner` / the value of `DEMO_OWNER_PASSWORD`
 - `demo.member` / the value of `DEMO_MEMBER_PASSWORD`
 
-Both passwords are temporary, so Keycloak requires a change on first login. These are authentication identities only; family ownership and membership are managed by HooviePack after login. Do not set either demo password or run the seed in production.
+Both passwords are temporary, so Keycloak requires a change on first login. These are authentication identities only; family ownership and membership are managed by HooviePack after login.
 
 Stop the services without deleting data:
 
@@ -202,7 +196,7 @@ The imported `hooviepack` realm contains:
 - `hooviepack-api`, the bearer-token audience
 - an audience mapper that adds `hooviepack-api` to web access tokens
 - local and production redirect/origin entries derived from `LOCAL_APP_ORIGIN` and `APP_ORIGIN`
-- brute-force protection; the production-safe realm import contains no users
+- brute-force protection and two temporary-password demo users
 
 The browser and `Authentication__Authority` use `${KEYCLOAK_PUBLIC_URL}/realms/hooviepack`. `Authentication__ValidIssuer` independently pins tokens to that public issuer, which must be HTTPS in production. `Authentication__MetadataAddress` may use `http://keycloak:8080` on the isolated Compose network so the API can fetch discovery/JWKS without routing out through the public proxy. Production keeps `Authentication__RequireHttpsMetadata=true`; the API narrowly exempts only loopback and the Docker-internal `keycloak` hostname and rejects arbitrary external HTTP metadata URLs. Signature, public issuer, audience, and lifetime validation remain enabled.
 
@@ -216,7 +210,7 @@ docker compose up -d keycloak
 
 Export/back up the realm before overriding a non-development instance. The bootstrap administrator is likewise created only when the Keycloak database is empty. Removing users from the import JSON does **not** delete or disable users in an existing Keycloak database. Operators must manually disable or delete any existing `demo.owner` and `demo.member` accounts in production.
 
-For production, leave both demo-password variables unset, enable verified email once SMTP is configured, rotate the bootstrap password, and review redirect URIs in the Keycloak console. Google or Microsoft login can later be added as Keycloak identity providers without changing the app's OIDC contract.
+For production, disable or delete both demo users, enable verified email once SMTP is configured, rotate the bootstrap password, and review redirect URIs in the Keycloak console. Google or Microsoft login can later be added as Keycloak identity providers without changing the app's OIDC contract.
 
 ## Database migrations
 
@@ -267,8 +261,8 @@ KEYCLOAK_PUBLIC_URL=https://auth.hooviestar.com
 KEYCLOAK_METADATA_URL=http://keycloak:8080/realms/hooviepack/.well-known/openid-configuration
 AUTH_REQUIRE_HTTPS_METADATA=true
 DATABASE_APPLY_MIGRATIONS=false
-DEMO_OWNER_PASSWORD=
-DEMO_MEMBER_PASSWORD=
+DEMO_OWNER_PASSWORD=replace-with-a-demo-owner-password
+DEMO_MEMBER_PASSWORD=replace-with-a-demo-member-password
 ```
 
 Do not add a trailing slash to either public URL. Leave `API_BASE_URL=/api`, use independent random database/admin passwords, and never commit `.env`.
@@ -379,7 +373,7 @@ docker compose logs --tail=200 web nginx
 
 Common causes:
 
-- **Compose reports a required variable error:** copy `.env.example` to `.env` and fill every required database/admin password; demo-user passwords are optional.
+- **Compose reports a required variable error:** copy `.env.example` to `.env` and fill every required database, admin, and demo-user password.
 - **Login redirects to the wrong host:** make `KEYCLOAK_PUBLIC_URL`, `APP_ORIGIN`, DNS, TLS names, and Keycloak client redirect URIs agree.
 - **Realm edits are ignored:** startup import skips an existing realm; use the deliberate re-import procedure or edit through the admin console.
 - **API stays unhealthy:** check PostgreSQL readiness and migration logs, then query `/health/ready` directly.

@@ -121,13 +121,10 @@ services:
       KC_METRICS_ENABLED: "true"
       APP_ORIGIN: ${APP_ORIGIN:-http://localhost:4200}
       LOCAL_APP_ORIGIN: http://localhost:4200
-      # Used only by the explicit local-development seed script. Realm import
-      # and normal production startup do not create or require demo users.
-      DEMO_OWNER_PASSWORD: ${DEMO_OWNER_PASSWORD:-}
-      DEMO_MEMBER_PASSWORD: ${DEMO_MEMBER_PASSWORD:-}
+      DEMO_OWNER_PASSWORD: ${DEMO_OWNER_PASSWORD:?Copy .env.example to .env and set DEMO_OWNER_PASSWORD}
+      DEMO_MEMBER_PASSWORD: ${DEMO_MEMBER_PASSWORD:?Copy .env.example to .env and set DEMO_MEMBER_PASSWORD}
     volumes:
       - ./infra/keycloak/hooviepack-realm.json:/opt/keycloak/data/import/hooviepack-realm.json:ro
-      - ./infra/keycloak/seed-demo-users.sh:/opt/keycloak/seed-demo-users.sh:ro
     ports:
       - "${BIND_ADDRESS:-127.0.0.1}:${KEYCLOAK_PORT:-8081}:8080"
     depends_on:

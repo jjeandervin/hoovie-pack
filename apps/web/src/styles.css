@@ -76,11 +76,14 @@ button:disabled, input:disabled, select:disabled, textarea:disabled { cursor: no
 .text-link:hover { text-decoration: underline; }
 
 .brand { display: inline-flex; align-items: center; gap: 11px; color: var(--sage-900); text-decoration: none; }
-.brand-mark { position: relative; display: inline-grid; width: 42px; height: 42px; flex: 0 0 42px; place-items: center; border: 3px solid #fff9; border-radius: 50% 50% 47% 47%; background: var(--terracotta-600); color: #fff; font-family: var(--font-display); font-size: 1.2rem; font-weight: 900; box-shadow: 0 4px 11px rgb(61 49 40 / 18%); }
+.brand-mark { position: relative; z-index: 0; display: inline-grid; width: 42px; height: 42px; flex: 0 0 42px; place-items: center; border: 3px solid #fff9; border-radius: 50% 50% 47% 47%; background: var(--terracotta-600); box-shadow: 0 4px 11px rgb(61 49 40 / 18%); }
 .brand-mark::before, .brand-mark::after { content: ""; position: absolute; z-index: -1; top: -8px; width: 15px; height: 18px; border-radius: 80% 15% 55% 30%; background: var(--terracotta-600); transform: rotate(-21deg); }
 .brand-mark::before { left: 1px; }
 .brand-mark::after { right: 1px; transform: scaleX(-1) rotate(-21deg); }
-.brand-mark i { position: absolute; bottom: 5px; width: 6px; height: 4px; border-radius: 50%; background: #fff9; }
+.brand-mark i { position: absolute; top: 9px; width: 7px; height: 5px; border-radius: 50%; background: #fff9; }
+.brand-legs::before, .brand-legs::after { content: ""; position: absolute; z-index: 0; bottom: -1px; width: 10px; height: 14px; border-radius: 4px 4px 7px 7px; background: var(--terracotta-600); }
+.brand-legs::before { left: 0; transform: rotate(7deg); }
+.brand-legs::after { right: 0; transform: rotate(-7deg); }
 .brand-copy { display: flex; flex-direction: column; line-height: 1.05; }
 .brand-copy strong { font-family: var(--font-display); font-size: 1.16rem; letter-spacing: -.035em; }
 .brand-copy small { margin-top: 5px; color: var(--muted); font-size: .7rem; letter-spacing: .02em; }
