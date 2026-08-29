@@ -5,21 +5,7 @@ import { AuthImageDirective } from './auth-image.directive';
   selector: 'hp-avatar',
   standalone: true,
   imports: [AuthImageDirective],
-  template: `
-    <span
-      class="avatar"
-      [style.width.px]="size()"
-      [style.height.px]="size()"
-      [style.font-size.px]="size() * 0.34"
-      [attr.aria-label]="name() || 'Profile'"
-    >
-      @if (resolvedSrc() && !imageFailed()) {
-        <img [hpAuthImage]="src()" [alt]="name() ? name() + ' profile photo' : 'Profile photo'" (authImageError)="imageFailed.set(true)" (error)="imageFailed.set(true)">
-      } @else {
-        <span aria-hidden="true">{{ initials() }}</span>
-      }
-    </span>
-  `,
+  templateUrl: './avatar.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AvatarComponent {

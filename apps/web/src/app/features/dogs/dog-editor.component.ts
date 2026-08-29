@@ -16,49 +16,7 @@ import { AuthImageDirective } from '../../shared/auth-image.directive';
   selector: 'hp-dog-editor',
   standalone: true,
   imports: [ReactiveFormsModule, RouterLink, AuthImageDirective, ImageUploaderComponent, UiStateComponent],
-  template: `
-    <div class="page editor-page dog-editor-page">
-      <header class="editor-header">
-        <a routerLink="/dogs" class="icon-button" aria-label="Close dog editor">×</a>
-        <div><p class="eyebrow">Dogs of the family</p><h1>{{ editing() ? 'Edit pup profile' : 'Add a pup' }}</h1></div><span></span>
-      </header>
-
-      @if (loading()) {
-        <hp-ui-state kind="loading" heading="Fetching pup details…" [compact]="true" />
-      } @else if (loadError()) {
-        <hp-ui-state kind="error" heading="We couldn’t open this profile" [message]="loadError()" actionLabel="Back to dogs" (action)="goToDogs()" />
-      } @else {
-        <form [formGroup]="form" (ngSubmit)="save()" class="dog-form" novalidate>
-          <section class="form-card dog-photo-section">
-            <div>
-              @if (existingPhoto()) { <img [hpAuthImage]="existingPhoto()" [alt]="form.controls.name.value || 'Current dog photo'"><button type="button" class="dog-photo-remove" (click)="removeCurrentPhoto()">Remove current photo</button> } @else { <span class="dog-placeholder dog-placeholder--large" aria-hidden="true"><i></i>●</span> }
-            </div>
-            <div><h2>Best face forward</h2><p>Add a clear, favorite photo. Square or portrait photos work beautifully.</p><hp-image-uploader [maxFiles]="1" [disabled]="submitting()" (filesChange)="selectPhoto($event[0])" /></div>
-          </section>
-
-          <section class="form-card stack-form">
-            <div class="settings-card__heading"><span aria-hidden="true">●</span><div><h2>Pup basics</h2><p>The details everyone asks about first.</p></div></div>
-            <div class="form-grid">
-              <div class="field"><label for="dog-name">Name</label><input id="dog-name" formControlName="name" maxlength="80" autocomplete="off" placeholder="Hermes">@if (showError('name')) { <p class="field-error">A pup needs a name.</p> }</div>
-              <div class="field"><label for="dog-breed">Breed <span>Optional</span></label><input id="dog-breed" formControlName="breed" maxlength="100" placeholder="Pembroke Welsh Corgi"></div>
-              <div class="field"><label for="dog-birthday">Birthday <span>Optional</span></label><input id="dog-birthday" type="date" formControlName="birthday" [max]="today"><small>Use a birthday, or give an approximate age below.</small></div>
-              <div class="field"><label for="dog-age">Approximate age <span>Optional</span></label><input id="dog-age" type="number" formControlName="approximateAgeYears" min="0" max="40" inputmode="numeric" placeholder="4"><small>In years, if the birthday is a mystery.</small></div>
-              <div class="field"><label for="dog-owner">Favorite human <span>Optional</span></label><select id="dog-owner" formControlName="ownerMemberId"><option value="">The whole family</option>@for (member of members(); track member.id) { <option [value]="member.id">{{ member.displayName }}</option> }</select></div>
-            </div>
-          </section>
-
-          <section class="form-card stack-form">
-            <div class="settings-card__heading"><span aria-hidden="true">♥</span><div><h2>Big personality</h2><p>The details that make this pup unmistakably themselves.</p></div></div>
-            <div class="field"><label for="dog-bio">About {{ form.controls.name.value || 'this pup' }} <span>Optional</span></label><textarea id="dog-bio" formControlName="bio" maxlength="500" rows="4" placeholder="Chief crumb inspector, professional napper, and neighborhood celebrity."></textarea><small>{{ form.controls.bio.value.length }}/500</small></div>
-            <div class="field"><label for="favorite-thing">Favorite thing <span>Optional</span></label><input id="favorite-thing" formControlName="favoriteThing" maxlength="120" placeholder="Squeaky fox and cheese tax"></div>
-          </section>
-
-          @if (formError()) { <div class="alert alert--error" role="alert"><span>!</span><p>{{ formError() }}</p></div> }
-          <footer class="composer-actions"><a routerLink="/dogs" class="button button--text">Cancel</a><button class="button button--large" type="submit" [disabled]="submitting()">{{ submitting() ? 'Saving…' : editing() ? 'Save changes' : 'Add to the pack' }}</button></footer>
-        </form>
-      }
-    </div>
-  `,
+  templateUrl: './dog-editor.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class DogEditorComponent implements OnInit {

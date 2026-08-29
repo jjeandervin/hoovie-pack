@@ -6,11 +6,7 @@ import { ToastHostComponent } from './shared/toast-host.component';
   selector: 'hp-root',
   standalone: true,
   imports: [RouterOutlet, ToastHostComponent],
-  template: `
-    <a class="skip-link" href="#main-content">Skip to content</a>
-    <router-outlet />
-    <hp-toast-host />
-  `,
+  templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AppComponent {}

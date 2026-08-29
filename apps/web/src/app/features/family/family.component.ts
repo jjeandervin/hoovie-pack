@@ -14,68 +14,7 @@ import { UiStateComponent } from '../../shared/ui-state.component';
   selector: 'hp-family',
   standalone: true,
   imports: [RouterLink, AvatarComponent, AuthImageDirective, UiStateComponent],
-  template: `
-    <div class="page family-page">
-      <header class="page-heading page-heading--actions">
-        <div><p class="eyebrow">The family</p><h1>{{ families.activeFamily()?.name }}</h1><p>{{ families.activeFamily()?.description || 'Your private home for shared family moments.' }}</p></div>
-        @if (families.canManage()) { <a class="button button--secondary" routerLink="/family/settings">Manage family</a> }
-      </header>
-
-      <section class="family-banner">
-        <div>
-          <span aria-hidden="true">◇</span>
-          <p><strong>Private family space</strong><small>Only invited members of {{ families.activeFamily()?.name }} can see what’s shared here.</small></p>
-        </div>
-        <span class="role-badge">{{ families.activeFamily()?.role }}</span>
-      </section>
-
-      @if (loading()) {
-        <hp-ui-state kind="loading" heading="Gathering everyone…" [compact]="true" />
-      } @else if (error()) {
-        <hp-ui-state kind="error" heading="We couldn’t load the family" [message]="error()" actionLabel="Try again" (action)="load()" />
-      } @else {
-        <section class="section-block" aria-labelledby="members-heading">
-          <div class="section-heading">
-            <div><p class="eyebrow">People</p><h2 id="members-heading">Pack members <span>{{ members().length }}</span></h2></div>
-            @if (families.canManage()) { <a routerLink="/family/settings" [queryParams]="{ invite: 1 }">＋ Invite someone</a> }
-          </div>
-          @if (members().length) {
-            <div class="member-grid">
-              @for (member of members(); track member.id) {
-                <a class="member-card" [routerLink]="['/members', member.id]">
-                  <hp-avatar [src]="member.avatarUrl" [name]="member.displayName" [size]="62" />
-                  <div><strong>{{ member.displayName }}</strong><span class="role-chip" [class.role-chip--owner]="member.role === 'Owner'">{{ member.role }}</span><p>{{ member.bio || 'A beloved member of the pack.' }}</p></div>
-                  <span aria-hidden="true">›</span>
-                </a>
-              }
-            </div>
-          } @else {
-            <hp-ui-state kind="empty" heading="It’s just you for now" message="Invite family members to start sharing together." [compact]="true" />
-          }
-        </section>
-
-        <section class="section-block" aria-labelledby="family-dogs-heading">
-          <div class="section-heading">
-            <div><p class="eyebrow">Four-legged family</p><h2 id="family-dogs-heading">Dogs in the pack <span>{{ dogs().length }}</span></h2></div>
-            <a routerLink="/dogs">See all dogs</a>
-          </div>
-          @if (dogs().length) {
-            <div class="dog-mini-row">
-              @for (dog of dogs().slice(0, 4); track dog.id) {
-                <a [routerLink]="['/dogs', dog.id]">
-                  @if (dog.photoUrl) { <img [hpAuthImage]="dog.photoUrl" [alt]="dog.name"> } @else { <span aria-hidden="true">●</span> }
-                  <strong>{{ dog.name }}</strong><small>{{ dog.breed || 'Very good dog' }}</small>
-                </a>
-              }
-              <a class="dog-mini-add" routerLink="/dogs/new"><span aria-hidden="true">＋</span><strong>Add a pup</strong><small>Every dog belongs</small></a>
-            </div>
-          } @else {
-            <a class="inline-empty-card" routerLink="/dogs/new"><span aria-hidden="true">●</span><div><strong>Who are the dogs of the family?</strong><p>Add the first pup and let their personality shine.</p></div><b>＋ Add a pup</b></a>
-          }
-        </section>
-      }
-    </div>
-  `,
+  templateUrl: './family.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class FamilyComponent {

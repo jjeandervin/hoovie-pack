@@ -1,0 +1,19 @@
+<div class="page detail-page">
+  <a class="back-link" routerLink="/family"><span aria-hidden="true">←</span> Back to family</a>
+  @if (loading()) {
+    <hp-ui-state kind="loading" heading="Finding your family member…" />
+  } @else if (error()) {
+    <hp-ui-state kind="error" heading="We couldn’t find that member" [message]="error()" actionLabel="Back to family" (action)="goBack()" />
+  } @else if (member()) {
+    <article class="profile-hero profile-hero--member">
+      <div class="profile-hero__pattern" aria-hidden="true"><span>●</span><span>●</span><span>●</span></div>
+      <hp-avatar [src]="member()!.avatarUrl" [name]="member()!.displayName" [size]="112" />
+      <div><span class="role-badge">{{ member()!.role }}</span><h1>{{ member()!.displayName }}</h1><p>{{ member()!.bio || 'A loved member of ' + families.activeFamily()?.name + '.' }}</p>@if (member()!.joinedAt) { <small>In the pack since {{ joinedDate(member()!.joinedAt!) }}</small> }</div>
+    </article>
+    <section class="detail-card">
+      <p class="eyebrow">Family connection</p>
+      <h2>Part of {{ families.activeFamily()?.name }}</h2>
+      <p>Profiles and everything shared in HooviePack stay visible only to members of this family.</p>
+    </section>
+  }
+</div>

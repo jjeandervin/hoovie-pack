@@ -1,0 +1,41 @@
+<div class="page feed-page">
+  <header class="page-heading feed-heading">
+    <div>
+      <p class="eyebrow">{{ greeting() }}, {{ firstName() }}</p>
+      <h1>What’s new in the pack?</h1>
+      <p>{{ families.activeFamily()?.description || 'The little moments are the big ones around here.' }}</p>
+    </div>
+    <button type="button" class="icon-button refresh-button" (click)="loadPosts(true)" [disabled]="refreshing()" aria-label="Refresh family feed">↻</button>
+  </header>
+
+  <a class="quick-composer" routerLink="/posts/new">
+    <hp-avatar [src]="user.profile()?.avatarUrl" [name]="user.profile()?.displayName || 'You'" [size]="44" />
+    <span>Share an update with your family…</span>
+    <b aria-hidden="true">▧</b>
+  </a>
+
+  @if (loading()) {
+    <section class="feed-skeletons" aria-label="Loading family posts" aria-busy="true">
+      @for (item of [1, 2, 3]; track item) {
+        <div class="post-skeleton"><div><i></i><span></span></div><p></p><p></p><figure></figure></div>
+      }
+    </section>
+  } @else if (error()) {
+    <hp-ui-state kind="error" heading="The feed wandered off" [message]="error()" actionLabel="Try again" (action)="loadPosts(true)" />
+  } @else if (!posts().length) {
+    <hp-ui-state kind="empty" icon="●" heading="Quiet pack, for now" message="Share the first update, photo, or tail-wagging moment with your family." actionLabel="Create the first post" (action)="openComposer()" />
+  } @else {
+    <section class="feed-list" aria-label="Family posts" [attr.aria-busy]="refreshing()">
+      @for (post of posts(); track post.id) {
+        <hp-post-card [post]="post" (changed)="updatePost($event)" (deleted)="removePost($event)" />
+      }
+    </section>
+    @if (hasMore()) {
+      <button type="button" class="button button--secondary load-more" (click)="loadMore()" [disabled]="loadingMore()">
+        {{ loadingMore() ? 'Following the trail…' : 'Show older posts' }}
+      </button>
+    } @else if (posts().length > 2) {
+      <p class="feed-end"><span aria-hidden="true">●</span> You’re all caught up with the pack.</p>
+    }
+  }
+</div>

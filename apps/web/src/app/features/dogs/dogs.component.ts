@@ -14,55 +14,7 @@ import { AuthImageDirective } from '../../shared/auth-image.directive';
   selector: 'hp-dogs',
   standalone: true,
   imports: [FormsModule, RouterLink, UiStateComponent, AuthImageDirective],
-  template: `
-    <div class="page dogs-page">
-      <header class="page-heading page-heading--actions">
-        <div><p class="eyebrow">Four paws, full hearts</p><h1>Dogs of the family</h1><p>The personalities, favorite things, and very good faces of {{ families.activeFamily()?.name }}.</p></div>
-        <a class="button" routerLink="/dogs/new"><span aria-hidden="true">＋</span> Add a pup</a>
-      </header>
-
-      <section class="dog-quote" aria-label="A note about family dogs">
-        <span class="dog-quote__mark" aria-hidden="true">●</span>
-        <blockquote>“Dogs are not our whole life, but they make our lives whole.”</blockquote>
-        <div aria-hidden="true"><i></i><i></i><i></i></div>
-      </section>
-
-      @if (loading()) {
-        <div class="dog-grid dog-grid--skeleton" aria-label="Loading dog profiles" aria-busy="true">@for (item of [1,2,3]; track item) { <div><figure></figure><p></p><span></span></div> }</div>
-      } @else if (error()) {
-        <hp-ui-state kind="error" heading="The pups are playing hide-and-seek" [message]="error()" actionLabel="Try again" (action)="load()" />
-      } @else if (!dogs().length) {
-        <hp-ui-state kind="empty" icon="●" heading="No pups in the pack yet" message="Add a dog profile for the four-legged family member who keeps everyone smiling." actionLabel="Add the first pup" (action)="addDog()" />
-      } @else {
-        <div class="filter-row">
-          <label for="dog-search" class="sr-only">Search dogs</label>
-          <span aria-hidden="true">⌕</span><input id="dog-search" type="search" [(ngModel)]="query" placeholder="Find a pup…">
-          <small>{{ filteredDogs().length }} {{ filteredDogs().length === 1 ? 'pup' : 'pups' }}</small>
-        </div>
-        @if (filteredDogs().length) {
-          <section class="dog-grid" aria-label="Family dog profiles">
-            @for (dog of filteredDogs(); track dog.id; let index = $index) {
-              <article class="dog-card" [class.dog-card--featured]="index === 0">
-                <a [routerLink]="['/dogs', dog.id]" class="dog-card__photo">
-                  @if (dog.photoUrl) { <img [hpAuthImage]="dog.photoUrl" [alt]="dog.name" loading="lazy"> } @else { <span class="dog-placeholder" aria-hidden="true"><i></i>●</span> }
-                  @if (dog.birthday) { <small>{{ ageLabel(dog.birthday) }}</small> } @else if (dog.approximateAge) { <small>About {{ dog.approximateAge }}</small> }
-                </a>
-                <div class="dog-card__body">
-                  <p class="eyebrow">{{ dog.breed || 'Very good dog' }}</p>
-                  <h2><a [routerLink]="['/dogs', dog.id]">{{ dog.name }}</a></h2>
-                  <p>{{ dog.bio || 'An important member of the family with excellent taste in treats.' }}</p>
-                  @if (dog.favoriteThing) { <div class="favorite-chip"><span aria-hidden="true">♥</span><span><small>Favorite thing</small><strong>{{ dog.favoriteThing }}</strong></span></div> }
-                  <a [routerLink]="['/dogs', dog.id]" class="text-link">Meet {{ dog.name }} <span aria-hidden="true">→</span></a>
-                </div>
-              </article>
-            }
-          </section>
-        } @else {
-          <hp-ui-state kind="empty" icon="⌕" heading="No matching pups" message="Try a different name or breed." [compact]="true" />
-        }
-      }
-    </div>
-  `,
+  templateUrl: './dogs.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class DogsComponent {

@@ -1,0 +1,11 @@
+<main id="main-content" class="standalone-page standalone-page--center">
+  <a class="brand" routerLink="/login" aria-label="HooviePack">
+    <span class="brand-mark" aria-hidden="true"><i></i>H</span>
+    <span class="brand-copy"><strong>HooviePack</strong></span>
+  </a>
+  @if (failed()) {
+    <hp-ui-state kind="error" heading="We couldn't finish signing you in" message="Your secure sign-in may have expired. Start once more and we'll get you home." actionLabel="Back to sign in" (action)="backToLogin()" />
+  } @else {
+    <hp-ui-state kind="loading" heading="Opening the gate…" message="Your pack is just on the other side." />
+  }
+</main>

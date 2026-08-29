@@ -1,0 +1,29 @@
+<div class="page detail-page dog-detail-page">
+  <a class="back-link" routerLink="/dogs"><span aria-hidden="true">←</span> All family dogs</a>
+  @if (loading()) {
+    <hp-ui-state kind="loading" heading="Calling this pup…" />
+  } @else if (error()) {
+    <hp-ui-state kind="error" heading="This pup wandered off" [message]="error()" actionLabel="Back to dogs" (action)="goToDogs()" />
+  } @else if (dog()) {
+    <article class="dog-profile">
+      <div class="dog-profile__photo">
+        @if (dog()!.photoUrl) { <img [hpAuthImage]="dog()!.photoUrl" [alt]="dog()!.name"> } @else { <span class="dog-placeholder dog-placeholder--large" aria-hidden="true"><i></i>●</span> }
+        <span class="dog-profile__tag" aria-hidden="true">♥</span>
+      </div>
+      <div class="dog-profile__content">
+        <p class="eyebrow">{{ dog()!.breed || 'Very good dog' }}</p>
+        <h1>{{ dog()!.name }}</h1>
+        @if (dog()!.birthday) { <p class="dog-age">{{ fullAge(dog()!.birthday!) }} · Born {{ birthday(dog()!.birthday!) }}</p> }
+        <p class="dog-profile__bio">{{ dog()!.bio || 'An adored member of the family and certified good pup.' }}</p>
+        <div class="dog-facts">
+          <div><span aria-hidden="true">♥</span><small>Favorite thing</small><strong>{{ dog()!.favoriteThing || 'Being with the family' }}</strong></div>
+          <div><span aria-hidden="true">⌂</span><small>Favorite human</small><strong>{{ dog()!.ownerDisplayName || 'The whole pack' }}</strong></div>
+        </div>
+        @if (dog()!.canEdit !== false) {
+          <div class="dog-profile__actions"><a class="button" [routerLink]="['/dogs', dog()!.id, 'edit']">Edit profile</a><button type="button" class="button button--text danger-text" (click)="deleteDog()">Delete profile</button></div>
+        }
+      </div>
+    </article>
+    <section class="detail-card dog-detail-note"><span aria-hidden="true">●</span><div><p class="eyebrow">Official pack member</p><h2>{{ dog()!.name }} makes {{ families.activeFamily()?.name }} whole.</h2><p>Because family comes with paws, muddy walks, and unconditional love.</p></div></section>
+  }
+</div>

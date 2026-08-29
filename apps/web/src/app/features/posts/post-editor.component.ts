@@ -18,63 +18,7 @@ import { UiStateComponent } from '../../shared/ui-state.component';
   selector: 'hp-post-editor',
   standalone: true,
   imports: [ReactiveFormsModule, RouterLink, AvatarComponent, AuthImageDirective, ImageUploaderComponent, UiStateComponent],
-  template: `
-    <div class="page editor-page">
-      <header class="editor-header">
-        <a routerLink="/feed" class="icon-button" aria-label="Close post editor">×</a>
-        <div><p class="eyebrow">Family feed</p><h1>{{ editing() ? 'Edit post' : 'Share an update' }}</h1></div>
-        <span></span>
-      </header>
-
-      @if (loading()) {
-        <hp-ui-state kind="loading" heading="Fetching your post…" [compact]="true" />
-      } @else if (loadError()) {
-        <hp-ui-state kind="error" heading="We couldn’t open that post" [message]="loadError()" actionLabel="Back to feed" (action)="goToFeed()" />
-      } @else {
-        <form [formGroup]="form" (ngSubmit)="save()" class="composer-card" novalidate>
-          <div class="composer-audience">
-            <hp-avatar [src]="user.profile()?.avatarUrl" [name]="user.profile()?.displayName || 'You'" [size]="48" />
-            <div><strong>{{ user.profile()?.displayName || 'You' }}</strong><span><i aria-hidden="true">◇</i> {{ families.activeFamily()?.name }} · Private</span></div>
-          </div>
-
-          <div class="field field--bare">
-            <label class="sr-only" for="post-content">Post text</label>
-            <textarea
-              id="post-content"
-              formControlName="content"
-              maxlength="2000"
-              rows="7"
-              autofocus
-              placeholder="What’s new in the pack?"
-              (input)="formError.set('')"
-            ></textarea>
-            <span class="character-count" [class.character-count--near]="form.controls.content.value.length > 1800">{{ form.controls.content.value.length }}/2,000</span>
-          </div>
-
-          @if (existingPhotos().length) {
-            <div class="existing-photos" aria-label="Photos already on this post">
-              @for (photo of existingPhotos(); track photo.id) {
-                <figure><img [hpAuthImage]="photo.url" [alt]="photo.originalFileName || 'Existing post photo'"><button type="button" (click)="removeExistingPhoto(photo)" [attr.aria-label]="'Remove ' + (photo.originalFileName || 'photo')">×</button></figure>
-              }
-              <p>Existing photos stay with this post.</p>
-            </div>
-          }
-
-          <hp-image-uploader [maxFiles]="remainingPhotoSlots()" [disabled]="submitting() || remainingPhotoSlots() === 0" (filesChange)="selectedPhotos.set($event); formError.set('')" />
-
-          <div class="composer-tip"><span aria-hidden="true">●</span><p><strong>Pack tip</strong> Keep everyone smiling—share moments your family would be happy to see around the dinner table.</p></div>
-          @if (formError()) { <div class="alert alert--error" role="alert"><span>!</span><p>{{ formError() }}</p></div> }
-
-          <footer class="composer-actions">
-            <a routerLink="/feed" class="button button--text">Cancel</a>
-            <button type="submit" class="button button--large" [disabled]="submitting()">
-              {{ submitting() ? 'Sharing…' : editing() ? 'Save changes' : 'Share with the pack' }}
-            </button>
-          </footer>
-        </form>
-      }
-    </div>
-  `,
+  templateUrl: './post-editor.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class PostEditorComponent implements OnInit {

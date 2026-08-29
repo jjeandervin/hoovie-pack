@@ -14,69 +14,7 @@ import { UiStateComponent } from '../../shared/ui-state.component';
   selector: 'hp-family-settings',
   standalone: true,
   imports: [ReactiveFormsModule, RouterLink, AvatarComponent, UiStateComponent],
-  template: `
-    <div class="page settings-page">
-      <a class="back-link" routerLink="/family"><span aria-hidden="true">←</span> Back to family</a>
-      <header class="page-heading"><div><p class="eyebrow">Owner & admin tools</p><h1>Family settings</h1><p>Keep your family details, invitations, and member access up to date.</p></div></header>
-
-      @if (!families.canManage()) {
-        <hp-ui-state kind="error" heading="Admin access needed" message="Only family owners and admins can change these settings." actionLabel="Back to family" (action)="goBack()" />
-      } @else if (loading()) {
-        <hp-ui-state kind="loading" heading="Opening settings…" [compact]="true" />
-      } @else if (loadError()) {
-        <hp-ui-state kind="error" heading="Settings are unavailable" [message]="loadError()" actionLabel="Try again" (action)="load()" />
-      } @else {
-        <section class="settings-card" aria-labelledby="details-heading">
-          <div class="settings-card__heading"><span aria-hidden="true">⌂</span><div><h2 id="details-heading">Family details</h2><p>What everyone sees at the top of your shared space.</p></div></div>
-          <form [formGroup]="familyForm" (ngSubmit)="saveFamily()" class="stack-form settings-form">
-            <div class="field"><label for="settings-name">Family name</label><input id="settings-name" formControlName="name" maxlength="80"></div>
-            <div class="field"><label for="settings-description">Description <span>Optional</span></label><textarea id="settings-description" formControlName="description" rows="3" maxlength="300"></textarea><small>{{ familyForm.controls.description.value.length }}/300</small></div>
-            @if (familyError()) { <p class="field-error" role="alert">{{ familyError() }}</p> }
-            <div class="form-actions"><button type="submit" class="button" [disabled]="familySaving() || familyForm.invalid">{{ familySaving() ? 'Saving…' : 'Save details' }}</button></div>
-          </form>
-        </section>
-
-        <section class="settings-card settings-card--accent" aria-labelledby="invite-heading">
-          <div class="settings-card__heading"><span aria-hidden="true">＋</span><div><h2 id="invite-heading">Invite family</h2><p>Create a private, expiring link for someone you trust.</p></div></div>
-          <div class="invite-builder">
-            <div class="field"><label for="invite-expiry">Link expires</label><select id="invite-expiry" [formControl]="inviteDays"><option [ngValue]="1">In 1 day</option><option [ngValue]="7">In 7 days</option><option [ngValue]="30">In 30 days</option></select></div>
-            <button type="button" class="button" (click)="generateInvite()" [disabled]="inviteBusy()">{{ inviteBusy() ? 'Creating…' : 'Create invite link' }}</button>
-          </div>
-          @if (inviteError()) { <p class="field-error" role="alert">{{ inviteError() }}</p> }
-          @if (invite()) {
-            <div class="invite-result" aria-live="polite">
-              <div><small>Private invitation</small><code>{{ inviteUrl() }}</code><span>Expires {{ inviteDate(invite()!.expiresAt) }}</span></div>
-              <button type="button" class="button button--secondary" (click)="copyInvite()">{{ copied() ? 'Copied!' : 'Copy link' }}</button>
-            </div>
-          }
-        </section>
-
-        <section class="settings-card" aria-labelledby="manage-members-heading">
-          <div class="settings-card__heading"><span aria-hidden="true">♧</span><div><h2 id="manage-members-heading">Members</h2><p>Choose who can invite others and manage the family.</p></div></div>
-          <div class="settings-member-list">
-            @for (member of members(); track member.id) {
-              <div class="settings-member">
-                <hp-avatar [src]="member.avatarUrl" [name]="member.displayName" [size]="46" />
-                <div><strong>{{ member.displayName }}</strong><small>{{ member.email }}</small></div>
-                @if (member.role === 'Owner') {
-                  <span class="role-chip role-chip--owner">Owner</span>
-                } @else if (isOwner()) {
-                  <label class="sr-only" [for]="'role-' + member.id">Role for {{ member.displayName }}</label>
-                  <select [id]="'role-' + member.id" [value]="member.role" (change)="changeRole(member, $event)" [disabled]="memberBusy() === member.id"><option value="Member">Member</option><option value="Admin">Admin</option></select>
-                  <button type="button" class="icon-button danger-text" (click)="removeMember(member)" [disabled]="memberBusy() === member.id" [attr.aria-label]="'Remove ' + member.displayName">×</button>
-                } @else {
-                  <span class="role-chip">{{ member.role }}</span>
-                  @if (member.role === 'Member') {
-                    <button type="button" class="icon-button danger-text" (click)="removeMember(member)" [disabled]="memberBusy() === member.id" [attr.aria-label]="'Remove ' + member.displayName">×</button>
-                  }
-                }
-              </div>
-            }
-          </div>
-        </section>
-      }
-    </div>
-  `,
+  templateUrl: './family-settings.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class FamilySettingsComponent implements OnInit {
