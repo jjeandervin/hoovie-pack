@@ -132,11 +132,12 @@ Keep frontend state in focused Angular services unless a heavier state library b
 ```text
 apps/
   web/                 Angular application and Dockerfile
-  api/                 ASP.NET Core API, migrations, and Dockerfile
+  api/                 ASP.NET Core API, EF migrations, and app/migration Dockerfiles
 infra/
   nginx/               production reverse proxy and TLS paths
   keycloak/            importable realm configuration
 compose.yaml
+compose.prod.yaml
 .env.example
 README.md
 docs/spec.md
@@ -144,7 +145,7 @@ docs/spec.md
 
 ### Runtime services and URLs
 
-Compose runs `web`, `api`, `postgres`, and `keycloak`, with a dedicated Keycloak database and named volumes for application data, identity data, and media. The optional production-profile `nginx` service routes:
+Compose runs `web`, `api`, `postgres`, and `keycloak`, with a dedicated Keycloak database and named volumes for application data, identity data, and media. The production overlay also defines a profile-gated, one-shot `db-migrations` service that is run explicitly before application updates and is excluded from normal `up` commands. The optional production-profile `nginx` service routes:
 
 - `https://hooviestar.com` to Angular
 - `https://hooviestar.com/api` to ASP.NET Core
@@ -200,7 +201,7 @@ In Development, expose Swagger UI at `/swagger` with an Authorize/Bearer securit
 
 ## Persistence and operations
 
-Commit the initial EF Core migration. Development can apply migrations on API startup. Production deployment must back up data, apply one reviewed migration with a single API instance, verify health, and then turn automatic migration off.
+Commit the initial EF Core migration. Development can apply migrations on API startup. Production API containers must keep automatic migrations disabled. Production deployment must back up data, run reviewed migrations through the dedicated one-shot migration image, abort the application update on migration failure, and verify application health after success.
 
 Named storage survives container replacement:
 
@@ -233,7 +234,7 @@ The MVP is complete when:
 8. Members can create and view dog profiles.
 9. The UI is responsive, accessible, earthy, polished, and subtly corgi-themed.
 10. PostgreSQL data, Keycloak data, and media persist across restarts.
-11. EF Core migrations and Dockerfiles are committed.
+11. EF Core migrations and dedicated application/migration Dockerfiles are committed.
 12. The documented Nginx profile can serve `hooviestar.com` and `auth.hooviestar.com` over TLS.
 
 When tradeoffs are required, prefer simple architecture, correct authentication, good mobile UX, strict family privacy boundaries, and tasteful branding—in that order.

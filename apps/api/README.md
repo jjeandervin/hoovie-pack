@@ -10,7 +10,7 @@ From `apps/api`:
 dotnet tool restore
 dotnet build HooviePack.slnx
 dotnet test HooviePack.slnx
-dotnet tool run dotnet-ef database update --project src/HooviePack.Api/HooviePack.Api.csproj --startup-project src/HooviePack.Api/HooviePack.Api.csproj
+dotnet tool run dotnet-ef -- database update --project src/HooviePack.Api/HooviePack.Api.csproj --startup-project src/HooviePack.Api/HooviePack.Api.csproj --context AppDbContext
 dotnet run --project src/HooviePack.Api/HooviePack.Api.csproj
 ```
 
@@ -31,10 +31,12 @@ Configuration uses standard ASP.NET Core environment-variable mapping:
 | `Authentication__Audience` | required API audience, normally `hooviepack-api` |
 | `Authentication__RequireHttpsMetadata` | keep `true` outside local development; an explicit HTTP metadata URL is accepted only for loopback or the Docker-internal `keycloak` host while `ValidIssuer` remains enforced |
 | `MediaStorage__RootPath` | private mounted media directory |
-| `Database__ApplyMigrations` | apply committed migrations during startup |
+| `Database__ApplyMigrations` | apply committed migrations during local/development API startup |
 | `Cors__AllowedOrigins__0` | first allowed browser origin |
 
 Liveness is available at `/health/live`; readiness, including PostgreSQL, is available at `/health/ready`.
+
+Production forces `Database__ApplyMigrations=false` for the API. Its schema is updated explicitly by the profile-gated `db-migrations` service in the repository-root `compose.prod.yaml`, built from `Dockerfile.migrations`. See the root [README](../../README.md#database-migrations) for the manual command, failure behavior, and deployment order.
 
 ## Media
 

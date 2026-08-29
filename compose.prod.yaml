@@ -14,12 +14,30 @@ services:
       # Keep HTTPS required for arbitrary metadata endpoints. The API has a
       # narrow exception for the trusted Docker-internal keycloak hostname.
       Authentication__RequireHttpsMetadata: "true"
-      Database__ApplyMigrations: ${DATABASE_APPLY_MIGRATIONS:-false}
+      # Production schema changes are run explicitly by db-migrations.
+      Database__ApplyMigrations: "false"
     ports: !reset []
     networks:
       jeandervin:
         aliases:
           - hooviepack-api
+
+  db-migrations:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile.migrations
+    profiles: ["migration"]
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      DOTNET_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${POSTGRES_DB:-hooviepack};Username=${POSTGRES_USER:-hooviepack};Password=${POSTGRES_PASSWORD:?Copy .env.example to .env and set POSTGRES_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    init: true
+    restart: "no"
+    networks:
+      - hooviepack
 
   postgres:
     ports: !reset []

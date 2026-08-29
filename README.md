@@ -10,12 +10,13 @@ The product and engineering requirements are preserved in [docs/spec.md](docs/sp
 | --- | ---: | --- | --- |
 | Angular web | 80 | `http://localhost:4200` | none |
 | ASP.NET Core API | 8080 | `http://localhost:5000` | `media_data` |
+| EF Core migration job | one-shot | none | none |
 | PostgreSQL (app) | 5432 | `localhost:5432` | `postgres_data` |
 | Keycloak | 8080 | `http://localhost:8081` | via `keycloak_data` |
 | PostgreSQL (Keycloak) | 5432 | internal only | `keycloak_data` |
 | Nginx | 80 / 443 | production profile only | host TLS files |
 
-All published development ports bind to `127.0.0.1` by default. Containers communicate over the private `hooviepack` Compose network. Nginx is deliberately behind the `production` profile because it requires a valid certificate.
+All published development ports bind to `127.0.0.1` by default. Containers communicate over the private `hooviepack` Compose network. Nginx is deliberately behind the `production` profile because it requires a valid certificate. The migration job belongs to the production-only Compose overlay and has a separate profile so an ordinary `up` never runs it implicitly.
 
 ## Local setup
 
@@ -155,7 +156,7 @@ The script uses Authorization Code Flow with PKCE to create disposable owner, me
 
 ### CI and security checks
 
-`.github/workflows/ci.yml` runs on pushes and pull requests. It restores, builds, and tests the API against PostgreSQL; installs the locked web dependencies, audits them, runs web tests, and makes a production build; scans full Git history with Gitleaks; fails on vulnerable direct or transitive NuGet packages using JSON output; and scans the custom API/web images with Trivy for fixable high/critical vulnerabilities. `.github/dependabot.yml` opens grouped weekly NuGet, npm, Docker/Compose, and GitHub Actions updates.
+`.github/workflows/ci.yml` runs on pushes and pull requests. It restores, builds, and tests the API against PostgreSQL; installs the locked web dependencies, audits them, runs web tests, and makes a production build; scans full Git history with Gitleaks; fails on vulnerable direct or transitive NuGet packages using JSON output; and builds and scans the custom API, migration, and web images with Trivy for fixable high/critical vulnerabilities. `.github/dependabot.yml` opens grouped weekly NuGet, npm, Docker/Compose, and GitHub Actions updates.
 
 The core checks can be run locally from the repository root (the NuGet guard requires `jq`, and image scans require Trivy):
 
@@ -179,9 +180,12 @@ rm -f nuget-vulnerabilities.json
   && npm test && npm run build:production)
 
 docker build --pull -t hooviepack-api:local apps/api
+docker build --pull -f apps/api/Dockerfile.migrations -t hooviepack-db-migrations:local apps/api
 docker build --pull -t hooviepack-web:local apps/web
 trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed \
   --exit-code 1 hooviepack-api:local
+trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed \
+  --exit-code 1 hooviepack-db-migrations:local
 trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed \
   --exit-code 1 hooviepack-web:local
 ```
@@ -216,21 +220,39 @@ For production, disable or delete both demo users, enable verified email once SM
 
 Development defaults `Database__ApplyMigrations` to `true`, so the API applies committed EF Core migrations during startup.
 
-With a local .NET SDK, migrations can also be applied manually from `apps/api`:
+With a local .NET SDK, restore the repository-pinned `dotnet-ef` 10.0.11 tool and apply migrations manually from `apps/api`:
 
 ```bash
-dotnet ef database update --project src/HooviePack.Api/HooviePack.Api.csproj --startup-project src/HooviePack.Api/HooviePack.Api.csproj
+dotnet tool restore
+dotnet tool run dotnet-ef -- database update \
+  --project src/HooviePack.Api/HooviePack.Api.csproj \
+  --startup-project src/HooviePack.Api/HooviePack.Api.csproj \
+  --context AppDbContext
 ```
 
-For a production rollout, without taking the whole stack down:
+Production is deliberately different. [`compose.prod.yaml`](compose.prod.yaml) forces API-startup migrations off, regardless of `DATABASE_APPLY_MIGRATIONS`, and defines the profiled `db-migrations` one-shot service. [`apps/api/Dockerfile.migrations`](apps/api/Dockerfile.migrations) uses the same pinned tool to build an EF migration bundle for `AppDbContext`; its final image contains the bundle, production settings, and the .NET runtime, but does not start the API.
 
-1. Back up the application database (and coordinate a media snapshot if the release changes media persistence).
-2. Set `DATABASE_APPLY_MIGRATIONS=true` for the deployment.
-3. Run `docker compose -f compose.yaml -f compose.prod.yaml up -d --build api` and wait for `/health/ready` plus a successful migration message in `docker compose logs api`.
-4. Verify the expected migration and application behavior.
-5. Set `DATABASE_APPLY_MIGRATIONS=false` (or remove the override) and run `docker compose -f compose.yaml -f compose.prod.yaml up -d api` so later restarts do not mutate the schema unexpectedly.
+The service receives exactly the same `POSTGRES_DB`, `POSTGRES_USER`, and `POSTGRES_PASSWORD`-derived `ConnectionStrings__DefaultConnection` as the API. Populate those values in the ignored production `.env` file, ensure the `postgres` service is reachable, and review and back up the database before applying a release. Never put the connection string or credentials in an image or source-controlled file.
 
-`compose.prod.yaml` defaults migrations to `false` even though development defaults them to `true`. Run only one migrating API instance at a time and review destructive migrations before deployment.
+Build and run the production migration explicitly from the repository root:
+
+```bash
+docker compose -f compose.yaml -f compose.prod.yaml build db-migrations
+docker compose -f compose.yaml -f compose.prod.yaml run --rm db-migrations
+```
+
+The second command runs `/app/efbundle --no-color`, prints EF Core progress to the terminal, and removes the stopped one-shot container. It returns `0` when all pending migrations are applied (including when the database is already current) and a non-zero status on failure. A deployment must stop on that non-zero status; it must not start the new application containers.
+
+Deployment automation should capture that command's standard output and error. For interactive troubleshooting where retained container logs are useful, omit `--rm` temporarily and assign a name:
+
+```bash
+docker compose -f compose.yaml -f compose.prod.yaml run \
+  --name hooviepack-db-migrations-debug db-migrations
+docker logs hooviepack-db-migrations-debug
+docker rm hooviepack-db-migrations-debug
+```
+
+The debug container is stopped, not long-running; remove it after inspection. Do not run more than one migration job at a time. A failed migration is not automatically rolled back by reverting the application image, and this workflow never drops, recreates, or automatically rolls back the production database. Inspect the failure and actual database state, then use a reviewed fix-forward plan or a separately tested restore procedure.
 
 ## Production deployment on Linux
 
@@ -295,12 +317,28 @@ Adapt the syntax to the external proxy and preserve its normal forwarded headers
 
 ### 3. Start and verify
 
-Validate the merged configuration, run the normal production deployment, and inspect health:
+Back up the application database, fetch the reviewed release, and run the production deployment wrapper. The script uses `set -Eeuo pipefail`, validates Compose, pulls service images, builds `web`, `api`, and `db-migrations` from the same checkout, runs the one-shot migration, and only then updates the application stack. A migration failure exits the script before `up`:
 
 ```bash
-docker compose -f compose.yaml -f compose.prod.yaml config --quiet
-docker compose -f compose.yaml -f compose.prod.yaml up -d --build
-docker compose -f compose.yaml -f compose.prod.yaml ps
+cd /opt/hooviepack
+git pull --ff-only
+bash scripts/deploy-prod.sh
+```
+
+The expanded command order in [`scripts/deploy-prod.sh`](scripts/deploy-prod.sh) is:
+
+```text
+1. docker compose ... config --quiet
+2. docker compose ... pull --ignore-buildable
+3. docker compose ... build --pull web api db-migrations
+4. docker compose ... run --rm --no-TTY db-migrations
+5. docker compose ... up --detach --no-build web api postgres keycloak-db keycloak
+6. docker compose ... ps
+```
+
+After the script succeeds, inspect application logs and health:
+
+```bash
 docker compose -f compose.yaml -f compose.prod.yaml logs --tail=200 api keycloak web
 ```
 
@@ -328,11 +366,12 @@ docker compose -f compose.yaml -f compose.prod.yaml up -d keycloak
 For a normal application/image update:
 
 ```bash
-docker compose -f compose.yaml -f compose.prod.yaml pull
-docker compose -f compose.yaml -f compose.prod.yaml up -d --build
+cd /opt/hooviepack
+git pull --ff-only
+bash scripts/deploy-prod.sh
 ```
 
-Do not use `docker compose down -v` during an upgrade: it destroys the application database, Keycloak database, and uploaded-media named volumes.
+Back up first and review every pending application migration. Schema changes that are incompatible with the currently running API require a coordinated maintenance window or an expand/contract rollout. Do not use `docker compose down -v` during an upgrade: it destroys the application database, Keycloak database, and uploaded-media named volumes.
 
 ## Backups and security checklist
 
@@ -376,6 +415,7 @@ Common causes:
 - **Compose reports a required variable error:** copy `.env.example` to `.env` and fill every required database, admin, and demo-user password.
 - **Login redirects to the wrong host:** make `KEYCLOAK_PUBLIC_URL`, `APP_ORIGIN`, DNS, TLS names, and Keycloak client redirect URIs agree.
 - **Realm edits are ignored:** startup import skips an existing realm; use the deliberate re-import procedure or edit through the admin console.
-- **API stays unhealthy:** check PostgreSQL readiness and migration logs, then query `/health/ready` directly.
+- **Migration job fails:** read its foreground output (or retain a named debug container as documented above), confirm the production `.env` database values and PostgreSQL health, and stop the rollout until the database state and migration are reviewed.
+- **API stays unhealthy:** confirm the explicit migration step succeeded, then check PostgreSQL readiness and API logs before querying `/health/ready` directly. Production API logs should not contain startup migration attempts.
 - **The optional in-repo Nginx will not start:** confirm its certificate files exist beneath `LETSENCRYPT_DIR/live/hooviestar.com/` and run `docker compose --profile production run --rm nginx nginx -t`.
 - **Port already allocated:** change the relevant local port in `.env`; production ports 80/443 must be free.

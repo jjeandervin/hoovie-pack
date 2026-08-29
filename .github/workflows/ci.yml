@@ -36,6 +36,32 @@ jobs:
             ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f \
             git --redact --verbose --config .gitleaks.toml .
 
+  compose:
+    name: Production Compose validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Validate explicit migration service
+        shell: bash
+        run: |
+          compose=(docker compose --env-file .env.example --file compose.yaml --file compose.prod.yaml)
+          "${compose[@]}" config --quiet
+
+          if "${compose[@]}" config --services | grep --fixed-strings --line-regexp db-migrations; then
+            echo "db-migrations must not be part of the default production service set." >&2
+            exit 1
+          fi
+
+          "${compose[@]}" --profile migration config --services \
+            | grep --quiet --fixed-strings --line-regexp db-migrations
+
+          test "$("${compose[@]}" config --format json \
+            | jq --raw-output '.services.api.environment.Database__ApplyMigrations')" = "false"
+
   api:
     name: API build, tests, and dependency audit
     runs-on: ubuntu-latest
@@ -126,6 +152,75 @@ jobs:
       - name: Build for production
         run: npm run build:production
 
+  migration-container:
+    name: Migration container
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: hooviepack_migration_tests
+          POSTGRES_USER: hooviepack_migration_tests
+          POSTGRES_PASSWORD: ci-only-not-a-secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U hooviepack_migration_tests -d hooviepack_migration_tests"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build migration image
+        run: >-
+          docker build
+          --pull
+          --file apps/api/Dockerfile.migrations
+          --tag hooviepack-db-migrations:ci
+          apps/api
+
+      - name: Apply migrations and verify idempotency
+        shell: bash
+        run: |
+          connection='Host=127.0.0.1;Port=5432;Database=hooviepack_migration_tests;Username=hooviepack_migration_tests;Password=ci-only-not-a-secret'
+          for attempt in 1 2; do
+            docker run --rm --network host \
+              --env DOTNET_ENVIRONMENT=Production \
+              --env "ConnectionStrings__DefaultConnection=$connection" \
+              hooviepack-db-migrations:ci
+          done
+
+      - name: Verify migration failures are non-zero
+        shell: bash
+        run: |
+          if docker run --rm --network host \
+            --env DOTNET_ENVIRONMENT=Production \
+            --env 'ConnectionStrings__DefaultConnection=Host=127.0.0.1;Port=1;Database=invalid;Username=invalid;Password=invalid;Timeout=2;Command Timeout=2' \
+            hooviepack-db-migrations:ci; then
+            echo "Migration image unexpectedly succeeded with an unreachable database." >&2
+            exit 1
+          fi
+
+      - name: Set up Trivy
+        uses: aquasecurity/setup-trivy@81e514348e19b6112ce2a7e3ecbafe19c1e1f567 # v0.3.1
+        with:
+          version: v0.74.0
+          cache: true
+
+      - name: Scan image for fixable high and critical vulnerabilities
+        run: >-
+          trivy image
+          --scanners vuln
+          --severity HIGH,CRITICAL
+          --ignore-unfixed
+          --exit-code 1
+          --no-progress
+          hooviepack-db-migrations:ci
+
   container-scan:
     name: Container scan (${{ matrix.name }})
     runs-on: ubuntu-latest
@@ -135,9 +230,11 @@ jobs:
         include:
           - name: api
             context: apps/api
+            dockerfile: apps/api/Dockerfile
             image: hooviepack-api:ci
           - name: web
             context: apps/web
+            dockerfile: apps/web/Dockerfile
             image: hooviepack-web:ci
     steps:
       - name: Check out repository
@@ -146,7 +243,12 @@ jobs:
           persist-credentials: false
 
       - name: Build image
-        run: docker build --pull --tag "${{ matrix.image }}" "${{ matrix.context }}"
+        run: >-
+          docker build
+          --pull
+          --file "${{ matrix.dockerfile }}"
+          --tag "${{ matrix.image }}"
+          "${{ matrix.context }}"
 
       - name: Set up Trivy
         uses: aquasecurity/setup-trivy@81e514348e19b6112ce2a7e3ecbafe19c1e1f567 # v0.3.1

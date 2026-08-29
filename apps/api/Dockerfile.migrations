@@ -1,0 +1,43 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS bundle
+ARG BUILD_CONFIGURATION=Release
+WORKDIR /src
+
+COPY dotnet-tools.json ./
+RUN dotnet tool restore
+
+COPY src/HooviePack.Api/HooviePack.Api.csproj src/HooviePack.Api/
+RUN dotnet restore src/HooviePack.Api/HooviePack.Api.csproj
+
+COPY src/HooviePack.Api/ src/HooviePack.Api/
+RUN dotnet build src/HooviePack.Api/HooviePack.Api.csproj \
+    --configuration "$BUILD_CONFIGURATION" \
+    --no-restore
+# Model discovery needs design-time configuration but does not connect here.
+# The final image excludes Development settings and reads production DB values at runtime.
+RUN DOTNET_ENVIRONMENT=Development \
+    dotnet tool run dotnet-ef -- migrations bundle \
+    --project src/HooviePack.Api/HooviePack.Api.csproj \
+    --startup-project src/HooviePack.Api/HooviePack.Api.csproj \
+    --context AppDbContext \
+    --configuration "$BUILD_CONFIGURATION" \
+    --no-build \
+    --output /app/efbundle \
+    --force \
+    --no-color
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends libgssapi-krb5-2 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY --from=bundle --chown=app:app /app/efbundle ./efbundle
+COPY --chown=app:app src/HooviePack.Api/appsettings.json ./appsettings.json
+COPY --chown=app:app src/HooviePack.Api/appsettings.Production.json ./appsettings.Production.json
+
+USER app
+ENV ASPNETCORE_ENVIRONMENT=Production \
+    DOTNET_ENVIRONMENT=Production
+
+ENTRYPOINT ["/app/efbundle", "--no-color"]
