@@ -11,7 +11,10 @@ services:
   api:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
+      # Keep HTTPS required for arbitrary metadata endpoints. The API has a
+      # narrow exception for the trusted Docker-internal keycloak hostname.
       Authentication__RequireHttpsMetadata: "true"
+      Database__ApplyMigrations: ${DATABASE_APPLY_MIGRATIONS:-false}
     ports: !reset []
     networks:
       jeandervin:

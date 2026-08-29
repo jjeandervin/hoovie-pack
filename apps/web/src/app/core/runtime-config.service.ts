@@ -1,5 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 import { environment } from '../../environments/environment';
+import { isUrlWithinBase } from './api-url';
 
 export interface RuntimeConfig {
   apiBaseUrl: string;
@@ -51,6 +52,10 @@ export class RuntimeConfigService {
 
   get apiBaseUrl(): string {
     return this.settingsSignal().apiBaseUrl.replace(/\/$/, '');
+  }
+
+  isApiUrl(value: string): boolean {
+    return isUrlWithinBase(value, this.apiBaseUrl, window.location.origin);
   }
 
   mediaUrl(path?: string | null): string | null {

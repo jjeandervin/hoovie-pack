@@ -1,0 +1,13 @@
+title = "HooviePack secret scanning"
+minVersion = "8.25.0"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Intentional example and CI-only placeholder values"
+regexTarget = "match"
+regexes = [
+  '''replace-with-(a-long-random-(app-db|keycloak-db|keycloak-admin)|a-demo-(owner|member))-password''',
+  '''ci-only-not-a-secret'''
+]

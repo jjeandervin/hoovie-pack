@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace HooviePack.Api.Application.Services;
@@ -6,15 +7,17 @@ public sealed record HealthCheckEntryResponse(string Status, string? Description
 
 public sealed record HealthResponse(
     string Status,
-    double TotalDurationMilliseconds,
-    IReadOnlyDictionary<string, HealthCheckEntryResponse> Checks);
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? TotalDurationMilliseconds,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyDictionary<string, HealthCheckEntryResponse>? Checks);
 
 public interface IApplicationHealthService
 {
     Task<HealthResponse> CheckAsync(bool readiness, CancellationToken cancellationToken = default);
 }
 
-public sealed class ApplicationHealthService(HealthCheckService healthCheckService) : IApplicationHealthService
+public sealed class ApplicationHealthService(
+    HealthCheckService healthCheckService,
+    IHostEnvironment hostEnvironment) : IApplicationHealthService
 {
     public async Task<HealthResponse> CheckAsync(bool readiness, CancellationToken cancellationToken = default)
     {
@@ -23,6 +26,14 @@ public sealed class ApplicationHealthService(HealthCheckService healthCheckServi
                 ? registration.Tags.Contains("ready") || registration.Tags.Contains("live")
                 : registration.Tags.Contains("live"),
             cancellationToken);
+        if (!hostEnvironment.IsDevelopment())
+        {
+            return new HealthResponse(
+                report.Status.ToString().ToLowerInvariant(),
+                TotalDurationMilliseconds: null,
+                Checks: null);
+        }
+
         var entries = report.Entries.ToDictionary(
             x => x.Key,
             x => new HealthCheckEntryResponse(

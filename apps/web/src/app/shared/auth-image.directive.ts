@@ -45,7 +45,7 @@ export class AuthImageDirective implements OnDestroy {
       return;
     }
 
-    const isProtected = url.startsWith('/api/') || url.startsWith(`${this.config.apiBaseUrl}/`);
+    const isProtected = this.config.isApiUrl(url);
     if (!isProtected) {
       this.renderer.setAttribute(this.element.nativeElement, 'src', url);
       this.renderer.removeClass(this.element.nativeElement, 'auth-image--loading');

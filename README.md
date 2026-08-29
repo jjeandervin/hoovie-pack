@@ -31,7 +31,7 @@ From the repository root, create the local environment file:
 Copy-Item .env.example .env
 ```
 
-On Linux or macOS, use `cp .env.example .env` instead. The checked-in replacement values are sufficient only for loopback development. Before using shared or production infrastructure, replace every `replace-with-...` value. A convenient generator is:
+On Linux or macOS, use `cp .env.example .env` instead. The checked-in replacement values are sufficient only for loopback development. Before using shared or production infrastructure, replace every required `replace-with-...` value. Never commit `.env`; it contains deployment credentials and is intentionally ignored. A convenient generator is:
 
 ```bash
 openssl rand -base64 48
@@ -45,7 +45,7 @@ docker compose up --build -d
 docker compose ps
 ```
 
-First startup can take a few minutes while images build, databases initialize, the realm imports, and EF Core applies the initial migration. Follow startup with:
+First startup can take a few minutes while images build, databases initialize, the realm imports, and EF Core applies the initial migration. The realm import does not create users. Follow startup with:
 
 ```bash
 docker compose logs -f api web keycloak
@@ -61,14 +61,18 @@ Open:
 
 Swagger UI is enabled only when `APP_ENVIRONMENT=Development`. It includes an **Authorize** control for a Keycloak bearer access token; enter the token using the UI's Bearer security scheme when exercising protected endpoints. Swagger is intentionally unavailable in Production.
 
-The bootstrap admin credentials come from `KEYCLOAK_ADMIN` and `KEYCLOAK_ADMIN_PASSWORD` in `.env`.
+The bootstrap admin credentials come from `KEYCLOAK_ADMIN` and `KEYCLOAK_ADMIN_PASSWORD` in `.env`. To explicitly create or reset the two local-only demo identities, set their development passwords in `.env`, start Keycloak, and run:
 
-Two development identities are imported on the first run:
+```bash
+docker compose exec keycloak /bin/sh /opt/keycloak/seed-demo-users.sh
+```
+
+The idempotent seed creates:
 
 - `demo.owner` / the value of `DEMO_OWNER_PASSWORD`
 - `demo.member` / the value of `DEMO_MEMBER_PASSWORD`
 
-Both passwords are temporary, so Keycloak requires a change on first login. These are authentication identities only; family ownership and membership are managed by HooviePack after login.
+Both passwords are temporary, so Keycloak requires a change on first login. These are authentication identities only; family ownership and membership are managed by HooviePack after login. Do not set either demo password or run the seed in production.
 
 Stop the services without deleting data:
 
@@ -76,7 +80,7 @@ Stop the services without deleting data:
 docker compose down
 ```
 
-To intentionally discard all local databases and uploaded media, use `docker compose down --volumes`. This is destructive and cannot be undone without a backup.
+To intentionally discard all local databases and uploaded media, use `docker compose down --volumes` (or `docker compose down -v`). **This destroys the persisted named volumes and cannot be undone without a backup. Never run it against production.**
 
 ## Debugging
 
@@ -155,6 +159,41 @@ With the local Compose stack healthy, Windows PowerShell or PowerShell 7 can run
 
 The script uses Authorization Code Flow with PKCE to create disposable owner, member, and outsider identities. It verifies profile synchronization, family creation and invite joining, photo posts, comments, reactions, dogs, protected media, cross-family isolation, and malformed-image rejection. It leaves the generated records in the local development volumes for inspection; use `docker compose down --volumes` only when you intentionally want to reset that disposable data.
 
+### CI and security checks
+
+`.github/workflows/ci.yml` runs on pushes and pull requests. It restores, builds, and tests the API against PostgreSQL; installs the locked web dependencies, audits them, runs web tests, and makes a production build; scans full Git history with Gitleaks; fails on vulnerable direct or transitive NuGet packages using JSON output; and scans the custom API/web images with Trivy for fixable high/critical vulnerabilities. `.github/dependabot.yml` opens grouped weekly NuGet, npm, Docker/Compose, and GitHub Actions updates.
+
+The core checks can be run locally from the repository root (the NuGet guard requires `jq`, and image scans require Trivy):
+
+```bash
+docker run --rm -v "$PWD:/repo" -w /repo \
+  ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f \
+  git --redact --verbose --config .gitleaks.toml .
+
+dotnet restore apps/api/HooviePack.slnx
+dotnet build apps/api/HooviePack.slnx -c Release --no-restore
+dotnet test apps/api/HooviePack.slnx -c Release --no-build
+dotnet package list --project apps/api/HooviePack.slnx --vulnerable \
+  --include-transitive --format json --output-version 1 --no-restore \
+  > nuget-vulnerabilities.json
+jq -e '[.projects[]?.frameworks[]? | ((.topLevelPackages // []) + \
+  (.transitivePackages // []))[]? | select((.vulnerabilities // []) | \
+  length > 0)] | length == 0' nuget-vulnerabilities.json
+rm -f nuget-vulnerabilities.json
+
+(cd apps/web && npm ci --no-audit --no-fund && npm audit --audit-level=high \
+  && npm test && npm run build:production)
+
+docker build --pull -t hooviepack-api:local apps/api
+docker build --pull -t hooviepack-web:local apps/web
+trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed \
+  --exit-code 1 hooviepack-api:local
+trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed \
+  --exit-code 1 hooviepack-web:local
+```
+
+PostgreSQL integration tests run when `HOOVIEPACK_TEST_POSTGRES` points to a disposable test database; CI provisions that database automatically. Never use production credentials for local or CI testing, and never commit scan output containing sensitive findings.
+
 ## Authentication configuration
 
 The imported `hooviepack` realm contains:
@@ -163,9 +202,9 @@ The imported `hooviepack` realm contains:
 - `hooviepack-api`, the bearer-token audience
 - an audience mapper that adds `hooviepack-api` to web access tokens
 - local and production redirect/origin entries derived from `LOCAL_APP_ORIGIN` and `APP_ORIGIN`
-- brute-force protection and two temporary-password demo users
+- brute-force protection; the production-safe realm import contains no users
 
-The browser uses `${KEYCLOAK_PUBLIC_URL}/realms/hooviepack` as its issuer. The API obtains discovery/JWKS metadata from `KEYCLOAK_METADATA_URL` over the Docker network, but validates the public issuer. Keeping these settings separate is intentional: `localhost` inside the API container is not the developer's host. The default backchannel is private HTTP, so `AUTH_REQUIRE_HTTPS_METADATA` must remain `false`; access tokens are still validated for signature, public HTTPS issuer, audience, and lifetime.
+The browser and `Authentication__Authority` use `${KEYCLOAK_PUBLIC_URL}/realms/hooviepack`. `Authentication__ValidIssuer` independently pins tokens to that public issuer, which must be HTTPS in production. `Authentication__MetadataAddress` may use `http://keycloak:8080` on the isolated Compose network so the API can fetch discovery/JWKS without routing out through the public proxy. Production keeps `Authentication__RequireHttpsMetadata=true`; the API narrowly exempts only loopback and the Docker-internal `keycloak` hostname and rejects arbitrary external HTTP metadata URLs. Signature, public issuer, audience, and lifetime validation remain enabled.
 
 Realm startup import happens only when `hooviepack` does not already exist. Editing the JSON does not overwrite a live realm. To deliberately re-import it:
 
@@ -175,9 +214,9 @@ docker compose run --rm keycloak import --file /opt/keycloak/data/import/hooviep
 docker compose up -d keycloak
 ```
 
-Export/back up the realm before overriding a non-development instance. The bootstrap administrator is likewise created only when the Keycloak database is empty.
+Export/back up the realm before overriding a non-development instance. The bootstrap administrator is likewise created only when the Keycloak database is empty. Removing users from the import JSON does **not** delete or disable users in an existing Keycloak database. Operators must manually disable or delete any existing `demo.owner` and `demo.member` accounts in production.
 
-For production, disable or delete both demo users, enable verified email once SMTP is configured, rotate the bootstrap password, and review redirect URIs in the Keycloak console. Google or Microsoft login can later be added as Keycloak identity providers without changing the app's OIDC contract.
+For production, leave both demo-password variables unset, enable verified email once SMTP is configured, rotate the bootstrap password, and review redirect URIs in the Keycloak console. Google or Microsoft login can later be added as Keycloak identity providers without changing the app's OIDC contract.
 
 ## Database migrations
 
@@ -189,18 +228,19 @@ With a local .NET SDK, migrations can also be applied manually from `apps/api`:
 dotnet ef database update --project src/HooviePack.Api/HooviePack.Api.csproj --startup-project src/HooviePack.Api/HooviePack.Api.csproj
 ```
 
-For a production rollout:
+For a production rollout, without taking the whole stack down:
 
-1. Back up the application database and uploaded-media volume.
+1. Back up the application database (and coordinate a media snapshot if the release changes media persistence).
 2. Set `DATABASE_APPLY_MIGRATIONS=true` for the deployment.
-3. Run `docker compose up -d --build api` and wait for `/health/ready` plus a successful migration message in `docker compose logs api`.
-4. Set `DATABASE_APPLY_MIGRATIONS=false` and run `docker compose up -d api` again so later restarts do not mutate the schema unexpectedly.
+3. Run `docker compose -f compose.yaml -f compose.prod.yaml up -d --build api` and wait for `/health/ready` plus a successful migration message in `docker compose logs api`.
+4. Verify the expected migration and application behavior.
+5. Set `DATABASE_APPLY_MIGRATIONS=false` (or remove the override) and run `docker compose -f compose.yaml -f compose.prod.yaml up -d api` so later restarts do not mutate the schema unexpectedly.
 
-Run only one migrating API instance at a time. Review destructive migrations before deployment.
+`compose.prod.yaml` defaults migrations to `false` even though development defaults them to `true`. Run only one migrating API instance at a time and review destructive migrations before deployment.
 
 ## Production deployment on Linux
 
-The production target is:
+Production uses the external `jeandervin-proxy`; the Nginx container and configuration in this repository are a secured reference/example, not the deployed edge. The production target is:
 
 - `https://hooviestar.com` → Angular
 - `https://hooviestar.com/api` → ASP.NET Core
@@ -208,7 +248,7 @@ The production target is:
 
 ### 1. Prepare the host and DNS
 
-Use a supported Linux distribution, install Docker Engine plus the Compose plugin, and point `A`/`AAAA` records for both `hooviestar.com` and `auth.hooviestar.com` at the server. Permit inbound TCP 80 and 443 (and SSH from trusted sources); do not expose database or container application ports publicly.
+Use a supported Linux distribution, install Docker Engine plus the Compose plugin, and point `A`/`AAAA` records for both `hooviestar.com` and `auth.hooviestar.com` at the external proxy. Permit inbound TCP 80 and 443 (and SSH from trusted sources); do not expose database or application container ports publicly. Ensure the existing `jeandervin` Docker network is available and the external proxy is attached to it.
 
 Place the checkout in a stable location such as `/opt/hooviepack`. Copy the environment template, generate independent random values for every password, then restrict the file:
 
@@ -225,67 +265,80 @@ APP_ENVIRONMENT=Production
 APP_ORIGIN=https://hooviestar.com
 KEYCLOAK_PUBLIC_URL=https://auth.hooviestar.com
 KEYCLOAK_METADATA_URL=http://keycloak:8080/realms/hooviepack/.well-known/openid-configuration
-AUTH_REQUIRE_HTTPS_METADATA=false
+AUTH_REQUIRE_HTTPS_METADATA=true
 DATABASE_APPLY_MIGRATIONS=false
-LETSENCRYPT_DIR=/etc/letsencrypt
-ACME_CHALLENGE_DIR=/var/www/certbot
+DEMO_OWNER_PASSWORD=
+DEMO_MEMBER_PASSWORD=
 ```
 
-Do not add a trailing slash to either public URL. Leave `API_BASE_URL=/api`.
+Do not add a trailing slash to either public URL. Leave `API_BASE_URL=/api`, use independent random database/admin passwords, and never commit `.env`.
 
-The sample keeps OIDC discovery on the isolated Compose network, which is why metadata HTTPS enforcement is `false` even in production. If the API container can reliably reach `https://auth.hooviestar.com`, you may instead set `KEYCLOAK_METADATA_URL=https://auth.hooviestar.com/realms/hooviepack/.well-known/openid-configuration` and `AUTH_REQUIRE_HTTPS_METADATA=true`. Do not combine the internal `http://keycloak:8080` URL with HTTPS enforcement.
+The production overlay keeps the HTTPS-metadata policy enabled. As described under authentication configuration, the API recognizes `http://keycloak:8080` as a trusted, isolated backchannel while still validating the public HTTPS issuer. The web container also builds its CSP from the exact `KEYCLOAK_PUBLIC_URL` origin, so production does not inherit a wildcard localhost allowance.
 
-### 2. Obtain TLS certificates
+### 2. Configure the external reverse proxy
 
-The sample Nginx config expects a single Let's Encrypt certificate named `hooviestar.com` containing both hostnames. With ports 80/443 free:
+Configure TLS and these upstream routes on the real `jeandervin-proxy`:
 
-```bash
-sudo certbot certonly --standalone \
-  --cert-name hooviestar.com \
-  -d hooviestar.com \
-  -d auth.hooviestar.com
+- `hooviestar.com` `/api` to `hooviepack-api:8080`
+- the rest of `hooviestar.com` to `hooviepack-web:80`
+- `auth.hooviestar.com` to `hooviepack-keycloak:8080`
+
+Forward the original `Host`, scheme, address, and port. Normal OIDC routes must remain public, including discovery, authorization, token, JWKS, logout, and login redirects. Restrict only `/admin/` (and its subpaths) to exact LAN/VPN/trusted administrator ranges. An Nginx-style rule is:
+
+```nginx
+location ^~ /admin/ {
+    allow <LAN-or-VPN-CIDR>;
+    deny all;
+    proxy_pass http://hooviepack-keycloak:8080;
+}
+
+location / {
+    proxy_pass http://hooviepack-keycloak:8080;
+}
 ```
 
-Because Compose mounts the entire `/etc/letsencrypt` tree read-only, the symlinks in `live/` can resolve into `archive/`. If certificates are managed elsewhere, preserve these in-container paths or update `infra/nginx/conf.d/hooviepack.conf`:
-
-- `/etc/letsencrypt/live/hooviestar.com/fullchain.pem`
-- `/etc/letsencrypt/live/hooviestar.com/privkey.pem`
+Adapt the syntax to the external proxy and preserve its normal forwarded headers. The in-repository [`infra/nginx/conf.d/hooviepack.conf`](infra/nginx/conf.d/hooviepack.conf) demonstrates a safe loopback-only default, but changing it does not update `jeandervin-proxy`; that external configuration is a required manual production action.
 
 ### 3. Start and verify
 
-Validate expansion, start the production profile, and inspect health:
+Validate the merged configuration, run the normal production deployment, and inspect health:
 
 ```bash
-docker compose --profile production config --quiet
-docker compose --profile production up -d --build
-docker compose ps
-docker compose logs --tail=200 nginx api keycloak
+docker compose -f compose.yaml -f compose.prod.yaml config --quiet
+docker compose -f compose.yaml -f compose.prod.yaml up -d --build
+docker compose -f compose.yaml -f compose.prod.yaml ps
+docker compose -f compose.yaml -f compose.prod.yaml logs --tail=200 api keycloak web
 ```
 
-Verify from another machine:
+Verify readiness from the deployment host, then verify the public endpoints from another machine:
 
 ```bash
-curl --fail --show-error https://hooviestar.com/api/health/ready
+docker compose -f compose.yaml -f compose.prod.yaml exec -T api \
+  curl --fail --silent --show-error http://127.0.0.1:8080/health/ready
+curl --fail --show-error --head https://hooviestar.com/
 curl --fail --show-error https://auth.hooviestar.com/realms/hooviepack/.well-known/openid-configuration
 ```
 
-The Nginx sample terminates TLS, redirects HTTP, forwards the original scheme/host to Keycloak, caps requests at 42 MiB, and never publishes the Keycloak management port.
+Also verify that a public request to `https://auth.hooviestar.com/admin/` is denied while a trusted LAN/VPN administrator can reach it, then exercise login and logout. The production overlay removes all direct host port publishing; the external proxy reaches only the named application services over `jeandervin`.
 
-### 4. Renew and update
+### 4. Upgrade Keycloak and update the stack
 
-Use the distribution's Certbot timer. Reload Nginx after a successful renewal:
+TLS renewal belongs to the external proxy. Before application, PostgreSQL, or Keycloak image upgrades, read the relevant release/migration notes and take tested backups. For a Keycloak upgrade, back up `keycloak-db`, update the deliberate `KEYCLOAK_IMAGE` pin (currently `quay.io/keycloak/keycloak:26.7.2`), then recreate only Keycloak and verify discovery, login/logout, and the `/admin/` restriction:
 
 ```bash
 cd /opt/hooviepack
-docker compose --profile production exec -T nginx nginx -s reload
+docker compose -f compose.yaml -f compose.prod.yaml pull keycloak
+docker compose -f compose.yaml -f compose.prod.yaml up -d keycloak
 ```
 
-Before application, PostgreSQL, or Keycloak image upgrades, read their release/migration notes and take backups. Image tags are pinned in `.env`; update them deliberately, then run:
+For a normal application/image update:
 
 ```bash
-docker compose --profile production pull
-docker compose --profile production up -d --build
+docker compose -f compose.yaml -f compose.prod.yaml pull
+docker compose -f compose.yaml -f compose.prod.yaml up -d --build
 ```
+
+Do not use `docker compose down -v` during an upgrade: it destroys the application database, Keycloak database, and uploaded-media named volumes.
 
 ## Backups and security checklist
 
@@ -303,11 +356,11 @@ Also snapshot or archive the `media_data` volume. Periodically test restoration 
 
 Before exposing the service:
 
-- replace all sample passwords and keep `.env` mode `0600`
-- remove/disable demo identities and configure SMTP plus email verification
-- keep `BIND_ADDRESS=127.0.0.1`; expose only Nginx ports 80/443
+- replace all sample passwords, keep `.env` mode `0600`, and never commit it
+- manually remove/disable any demo identities already present, and configure SMTP plus email verification
+- expose only the external reverse proxy on ports 80/443
 - keep PostgreSQL and the Keycloak management port off the public network
-- restrict Keycloak admin-console access with a VPN or an Nginx IP allowlist where practical
+- restrict Keycloak `/admin/` with a VPN or trusted-IP allowlist on the external reverse proxy
 - keep host, Docker, base images, Keycloak, and PostgreSQL patched
 - test file-type/size validation and family authorization for every media route
 - monitor container health, authentication failures, disk usage, and certificate expiry
@@ -326,9 +379,9 @@ docker compose logs --tail=200 web nginx
 
 Common causes:
 
-- **Compose reports a required variable error:** copy `.env.example` to `.env` and fill every password.
+- **Compose reports a required variable error:** copy `.env.example` to `.env` and fill every required database/admin password; demo-user passwords are optional.
 - **Login redirects to the wrong host:** make `KEYCLOAK_PUBLIC_URL`, `APP_ORIGIN`, DNS, TLS names, and Keycloak client redirect URIs agree.
 - **Realm edits are ignored:** startup import skips an existing realm; use the deliberate re-import procedure or edit through the admin console.
 - **API stays unhealthy:** check PostgreSQL readiness and migration logs, then query `/health/ready` directly.
-- **Nginx will not start:** confirm the certificate files exist beneath `LETSENCRYPT_DIR/live/hooviestar.com/` and run `docker compose --profile production run --rm nginx nginx -t`.
+- **The optional in-repo Nginx will not start:** confirm its certificate files exist beneath `LETSENCRYPT_DIR/live/hooviestar.com/` and run `docker compose --profile production run --rm nginx nginx -t`.
 - **Port already allocated:** change the relevant local port in `.env`; production ports 80/443 must be free.

@@ -8,6 +8,7 @@ services:
     environment:
       API_BASE_URL: ${API_BASE_URL:-/api}
       OIDC_ISSUER: ${KEYCLOAK_PUBLIC_URL:-http://localhost:8081}/realms/hooviepack
+      CSP_OIDC_ORIGIN: ${KEYCLOAK_PUBLIC_URL:-http://localhost:8081}
       OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-hooviepack-web}
       OIDC_REDIRECT_URI: ${OIDC_REDIRECT_URI:-}
       OIDC_POST_LOGOUT_REDIRECT_URI: ${OIDC_POST_LOGOUT_REDIRECT_URI:-}
@@ -103,7 +104,7 @@ services:
       - hooviepack
 
   keycloak:
-    image: ${KEYCLOAK_IMAGE:-quay.io/keycloak/keycloak:26.7.1}
+    image: ${KEYCLOAK_IMAGE:-quay.io/keycloak/keycloak:26.7.2}
     command: ["start", "--import-realm"]
     environment:
       KC_DB: postgres
@@ -120,10 +121,13 @@ services:
       KC_METRICS_ENABLED: "true"
       APP_ORIGIN: ${APP_ORIGIN:-http://localhost:4200}
       LOCAL_APP_ORIGIN: http://localhost:4200
-      DEMO_OWNER_PASSWORD: ${DEMO_OWNER_PASSWORD:?Copy .env.example to .env and set DEMO_OWNER_PASSWORD}
-      DEMO_MEMBER_PASSWORD: ${DEMO_MEMBER_PASSWORD:?Copy .env.example to .env and set DEMO_MEMBER_PASSWORD}
+      # Used only by the explicit local-development seed script. Realm import
+      # and normal production startup do not create or require demo users.
+      DEMO_OWNER_PASSWORD: ${DEMO_OWNER_PASSWORD:-}
+      DEMO_MEMBER_PASSWORD: ${DEMO_MEMBER_PASSWORD:-}
     volumes:
       - ./infra/keycloak/hooviepack-realm.json:/opt/keycloak/data/import/hooviepack-realm.json:ro
+      - ./infra/keycloak/seed-demo-users.sh:/opt/keycloak/seed-demo-users.sh:ro
     ports:
       - "${BIND_ADDRESS:-127.0.0.1}:${KEYCLOAK_PORT:-8081}:8080"
     depends_on:

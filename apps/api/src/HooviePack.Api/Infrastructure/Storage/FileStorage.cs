@@ -67,6 +67,7 @@ public sealed class LocalFileStorage : IFileStorage
         var stagingDirectory = ResolvePath(".staging");
         Directory.CreateDirectory(stagingDirectory);
         var stagingPath = Path.Combine(stagingDirectory, $"{Guid.CreateVersion7():N}.upload");
+        var sanitizedPath = Path.Combine(stagingDirectory, $"{Guid.CreateVersion7():N}.sanitized");
 
         try
         {
@@ -99,16 +100,27 @@ public sealed class LocalFileStorage : IFileStorage
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            var info = await ImageFileInspector.InspectAsync(stagingPath, cancellationToken);
+            var info = await ImageFileInspector.ReencodeWithoutMetadataAsync(
+                stagingPath,
+                sanitizedPath,
+                MaxImageBytes,
+                cancellationToken);
+            if (new FileInfo(sanitizedPath).Length > MaxImageBytes)
+            {
+                throw new InvalidMediaException(
+                    $"Images must be no larger than {MaxImageBytes / (1024 * 1024)} MB after processing.");
+            }
+
             var extension = info.Extension;
+            var now = DateTime.UtcNow;
             var relativePath = Path.Combine(
                 category,
-                DateTime.UtcNow.ToString("yyyy"),
-                DateTime.UtcNow.ToString("MM"),
+                now.ToString("yyyy"),
+                now.ToString("MM"),
                 $"{Guid.CreateVersion7():N}{extension}");
             var destinationPath = ResolvePath(relativePath);
             Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
-            File.Move(stagingPath, destinationPath);
+            File.Move(sanitizedPath, destinationPath);
 
             var safeOriginalName = Path.GetFileName(originalFileName.Trim());
             if (safeOriginalName.Length == 0)
@@ -138,6 +150,18 @@ public sealed class LocalFileStorage : IFileStorage
                 catch (Exception exception)
                 {
                     _logger.LogWarning(exception, "Could not remove media staging file {StagingPath}.", stagingPath);
+                }
+            }
+
+            if (File.Exists(sanitizedPath))
+            {
+                try
+                {
+                    File.Delete(sanitizedPath);
+                }
+                catch (Exception exception)
+                {
+                    _logger.LogWarning(exception, "Could not remove sanitized media staging file {StagingPath}.", sanitizedPath);
                 }
             }
         }

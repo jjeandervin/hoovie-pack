@@ -7,7 +7,7 @@ import { RuntimeConfigService } from './runtime-config.service';
 export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const auth = inject(AuthService);
   const config = inject(RuntimeConfigService);
-  const isApiRequest = request.url.startsWith(config.apiBaseUrl) || request.url.startsWith('/api');
+  const isApiRequest = config.isApiUrl(request.url);
   const token = auth.accessToken();
 
   const outgoing = isApiRequest && token

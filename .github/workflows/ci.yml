@@ -1,0 +1,165 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+
+jobs:
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out full history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Scan Git history with Gitleaks
+        shell: bash
+        run: |
+          docker run --rm \
+            --volume "$GITHUB_WORKSPACE:/repo" \
+            --workdir /repo \
+            ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f \
+            git --redact --verbose --config .gitleaks.toml .
+
+  api:
+    name: API build, tests, and dependency audit
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: hooviepack_tests
+          POSTGRES_USER: hooviepack_tests
+          POSTGRES_PASSWORD: ci-only-not-a-secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U hooviepack_tests -d hooviepack_tests"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      HOOVIEPACK_TEST_POSTGRES: Host=127.0.0.1;Port=5432;Database=hooviepack_tests;Username=hooviepack_tests;Password=ci-only-not-a-secret
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore apps/api/HooviePack.slnx
+
+      - name: Check direct and transitive NuGet dependencies
+        shell: bash
+        run: |
+          dotnet package list \
+            --project apps/api/HooviePack.slnx \
+            --vulnerable \
+            --include-transitive \
+            --format json \
+            --output-version 1 \
+            --no-restore > nuget-vulnerabilities.json
+          cat nuget-vulnerabilities.json
+          jq -e '
+            [
+              .projects[]?.frameworks[]?
+              | ((.topLevelPackages // []) + (.transitivePackages // []))[]?
+              | select((.vulnerabilities // []) | length > 0)
+            ]
+            | length == 0
+          ' nuget-vulnerabilities.json
+
+      - name: Build
+        run: dotnet build apps/api/HooviePack.slnx --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test apps/api/HooviePack.slnx --configuration Release --no-build --logger "console;verbosity=normal"
+
+  web:
+    name: Web production build and dependency audit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Audit npm dependencies
+        run: npm audit --audit-level=high
+
+      - name: Test
+        run: npm test
+
+      - name: Build for production
+        run: npm run build:production
+
+  container-scan:
+    name: Container scan (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: api
+            context: apps/api
+            image: hooviepack-api:ci
+          - name: web
+            context: apps/web
+            image: hooviepack-web:ci
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build image
+        run: docker build --pull --tag "${{ matrix.image }}" "${{ matrix.context }}"
+
+      - name: Set up Trivy
+        uses: aquasecurity/setup-trivy@81e514348e19b6112ce2a7e3ecbafe19c1e1f567 # v0.3.1
+        with:
+          version: v0.74.0
+          cache: true
+
+      - name: Scan image for fixable high and critical vulnerabilities
+        run: >-
+          trivy image
+          --scanners vuln
+          --severity HIGH,CRITICAL
+          --ignore-unfixed
+          --exit-code 1
+          --no-progress
+          "${{ matrix.image }}"

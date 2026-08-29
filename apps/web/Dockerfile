@@ -8,7 +8,8 @@ COPY public ./public
 RUN npm run build:production
 
 FROM nginx:1.29-alpine AS runtime
-RUN apk add --no-cache gettext
+RUN apk upgrade --no-cache \
+    && apk add --no-cache gettext
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist/hooviepack-web/browser /usr/share/nginx/html
 COPY docker-entrypoint.d/40-runtime-config.sh /docker-entrypoint.d/40-runtime-config.sh
