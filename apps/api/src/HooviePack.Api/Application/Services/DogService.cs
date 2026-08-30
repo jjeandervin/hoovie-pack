@@ -3,6 +3,7 @@ using HooviePack.Api.Application.Contracts;
 using HooviePack.Api.Domain;
 using HooviePack.Api.Infrastructure.Data;
 using HooviePack.Api.Infrastructure.Storage;
+using HooviePack.Files.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace HooviePack.Api.Application.Services;
@@ -20,7 +21,7 @@ public sealed class DogService(
     AppDbContext db,
     IIdentityService identityService,
     IFamilyAccessService accessService,
-    IFileStorage fileStorage,
+    IFileServiceClient fileServiceClient,
     IMediaCleanupService mediaCleanup) : IDogService
 {
     public async Task<IReadOnlyCollection<DogResponse>> ListAsync(
@@ -78,11 +79,12 @@ public sealed class DogService(
             UpdatedAt = now
         };
 
-        StoredImage? stored = null;
-        if (request.Photo is not null)
+        FileMetadataResponse? stored = null;
+        if (request.PhotoFile is not null)
         {
-            stored = await StorePhotoAsync(request.Photo, cancellationToken);
-            dog.PhotoStoragePath = stored.StoragePath;
+            stored = await CompletePhotoAsync(request.PhotoFile, cancellationToken);
+            dog.PhotoFileId = stored.FileId;
+            dog.PhotoStoragePath = null;
             dog.PhotoContentType = stored.ContentType;
             dog.PhotoUrl = $"/api/media/dogs/{dog.Id}";
         }
@@ -94,7 +96,7 @@ public sealed class DogService(
         }
         catch
         {
-            await mediaCleanup.DeleteBestEffortAsync(stored?.StoragePath, "dog profile creation failed");
+            await mediaCleanup.DeleteBestEffortAsync(stored?.FileId, "dog profile creation failed");
             throw;
         }
 
@@ -116,13 +118,13 @@ public sealed class DogService(
         EnsureCanManage(dog, user.Id, membership.Role);
         await ValidateRequestAsync(familyId, request, cancellationToken);
 
-        StoredImage? stored = null;
-        if (request.Photo is not null)
+        FileMetadataResponse? stored = null;
+        if (request.PhotoFile is not null)
         {
-            stored = await StorePhotoAsync(request.Photo, cancellationToken);
+            stored = await CompletePhotoAsync(request.PhotoFile, cancellationToken);
         }
 
-        var previousPhotoPath = dog.PhotoStoragePath;
+        var previousPhotoFileId = dog.PhotoFileId;
         try
         {
             dog.Name = RequireName(request.Name);
@@ -136,12 +138,14 @@ public sealed class DogService(
 
             if (stored is not null)
             {
-                dog.PhotoStoragePath = stored.StoragePath;
+                dog.PhotoFileId = stored.FileId;
+                dog.PhotoStoragePath = null;
                 dog.PhotoContentType = stored.ContentType;
                 dog.PhotoUrl = $"/api/media/dogs/{dog.Id}";
             }
             else if (request.RemovePhoto)
             {
+                dog.PhotoFileId = null;
                 dog.PhotoStoragePath = null;
                 dog.PhotoContentType = null;
                 dog.PhotoUrl = null;
@@ -151,13 +155,13 @@ public sealed class DogService(
         }
         catch
         {
-            await mediaCleanup.DeleteBestEffortAsync(stored?.StoragePath, "dog profile update failed");
+            await mediaCleanup.DeleteBestEffortAsync(stored?.FileId, "dog profile update failed");
             throw;
         }
 
-        if ((stored is not null || request.RemovePhoto) && previousPhotoPath != dog.PhotoStoragePath)
+        if ((stored is not null || request.RemovePhoto) && previousPhotoFileId != dog.PhotoFileId)
         {
-            await mediaCleanup.DeleteBestEffortAsync(previousPhotoPath, "dog photo was replaced after database commit");
+            await mediaCleanup.DeleteBestEffortAsync(previousPhotoFileId, "dog photo was replaced after database commit");
         }
 
         return await LoadResponseAsync(dog.Id, user.Id, membership.Role, cancellationToken);
@@ -175,10 +179,10 @@ public sealed class DogService(
             .SingleOrDefaultAsync(x => x.Id == dogId && x.FamilyId == familyId, cancellationToken)
             ?? throw ApiException.NotFound();
         EnsureCanManage(dog, user.Id, membership.Role);
-        var storagePath = dog.PhotoStoragePath;
+        var fileId = dog.PhotoFileId;
         db.DogProfiles.Remove(dog);
         await db.SaveChangesAsync(cancellationToken);
-        await mediaCleanup.DeleteBestEffortAsync(storagePath, "dog profile was deleted after database commit");
+        await mediaCleanup.DeleteBestEffortAsync(fileId, "dog profile was deleted after database commit");
     }
 
     private async Task ValidateRequestAsync(
@@ -209,24 +213,26 @@ public sealed class DogService(
         }
     }
 
-    private async Task<StoredImage> StorePhotoAsync(IFormFile photo, CancellationToken cancellationToken)
-    {
-        if (photo.Length <= 0 || photo.Length > fileStorage.MaxImageBytes)
-        {
-            throw ApiException.BadRequest(
-                $"Dog photo must be a non-empty image no larger than {fileStorage.MaxImageBytes / (1024 * 1024)} MB.",
-                "photo");
-        }
+    private Task<FileMetadataResponse> CompletePhotoAsync(
+        FileUploadReferenceRequest photo,
+        CancellationToken cancellationToken) =>
+        CompleteUnassociatedPhotoAsync(photo, cancellationToken);
 
-        try
-        {
-            await using var input = photo.OpenReadStream();
-            return await fileStorage.StoreImageAsync(input, photo.FileName, "dogs", cancellationToken);
-        }
-        catch (InvalidMediaException exception)
-        {
-            throw ApiException.BadRequest(exception.Message, "photo");
-        }
+    private async Task<FileMetadataResponse> CompleteUnassociatedPhotoAsync(
+        FileUploadReferenceRequest photo,
+        CancellationToken cancellationToken)
+    {
+        await MediaFileOperations.RequireUnassociatedAsync(
+            db,
+            [photo.FileId],
+            "photoFile",
+            cancellationToken);
+        return await MediaFileOperations.CompleteImageAsync(
+            fileServiceClient,
+            mediaCleanup,
+            photo,
+            "photoFile",
+            cancellationToken);
     }
 
     private IQueryable<DogProfile> DogQuery() => db.DogProfiles

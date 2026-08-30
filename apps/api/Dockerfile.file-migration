@@ -1,0 +1,31 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+COPY src/HooviePack.Files.Domain/HooviePack.Files.Domain.csproj src/HooviePack.Files.Domain/
+COPY src/HooviePack.Api/HooviePack.Api.csproj src/HooviePack.Api/
+COPY src/HooviePack.Files.Api/HooviePack.Files.Api.csproj src/HooviePack.Files.Api/
+COPY src/HooviePack.FileMigration/HooviePack.FileMigration.csproj src/HooviePack.FileMigration/
+RUN dotnet restore src/HooviePack.FileMigration/HooviePack.FileMigration.csproj
+
+COPY src/HooviePack.Files.Domain/ src/HooviePack.Files.Domain/
+COPY src/HooviePack.Api/ src/HooviePack.Api/
+COPY src/HooviePack.Files.Api/ src/HooviePack.Files.Api/
+COPY src/HooviePack.FileMigration/ src/HooviePack.FileMigration/
+RUN dotnet publish src/HooviePack.FileMigration/HooviePack.FileMigration.csproj \
+    --configuration Release \
+    --output /app/publish \
+    --no-restore \
+    /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends libgssapi-krb5-2 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY --from=build --chown=app:app /app/publish .
+
+USER app
+ENV DOTNET_ENVIRONMENT=Production
+
+ENTRYPOINT ["dotnet", "HooviePack.FileMigration.dll"]

@@ -1,9 +1,11 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
+COPY src/HooviePack.Files.Domain/HooviePack.Files.Domain.csproj src/HooviePack.Files.Domain/
 COPY src/HooviePack.Api/HooviePack.Api.csproj src/HooviePack.Api/
 RUN dotnet restore src/HooviePack.Api/HooviePack.Api.csproj
 
+COPY src/HooviePack.Files.Domain/ src/HooviePack.Files.Domain/
 COPY src/HooviePack.Api/ src/HooviePack.Api/
 RUN dotnet publish src/HooviePack.Api/HooviePack.Api.csproj \
     --configuration Release \
@@ -18,12 +20,10 @@ RUN apt-get update \
 
 WORKDIR /app
 COPY --from=build --chown=app:app /app/publish .
-RUN mkdir -p /app/media && chown app:app /app/media
 
 USER app
 ENV ASPNETCORE_HTTP_PORTS=8080
 EXPOSE 8080
-VOLUME ["/app/media"]
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
     CMD curl --fail --silent --show-error http://127.0.0.1:8080/health/ready || exit 1
 

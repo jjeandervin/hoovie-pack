@@ -3,6 +3,7 @@ using HooviePack.Api.Application.Contracts;
 using HooviePack.Api.Domain;
 using HooviePack.Api.Infrastructure.Data;
 using HooviePack.Api.Infrastructure.Storage;
+using HooviePack.Files.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace HooviePack.Api.Application.Services;
@@ -20,7 +21,7 @@ public sealed class PostService(
     AppDbContext db,
     IIdentityService identityService,
     IFamilyAccessService accessService,
-    IFileStorage fileStorage,
+    IFileServiceClient fileServiceClient,
     IMediaCleanupService mediaCleanup) : IPostService
 {
     private const int MaxPhotos = 4;
@@ -84,9 +85,10 @@ public sealed class PostService(
         var user = await identityService.GetCurrentUserAsync(principal, cancellationToken);
         var membership = await accessService.RequireMemberAsync(familyId, user.Id, cancellationToken);
         var content = NormalizeContent(request.Content);
-        ValidatePost(content, request.Photos.Count);
+        var photoFiles = request.PhotoFiles ?? [];
+        ValidatePost(content, photoFiles.Count);
 
-        var storedImages = await StorePhotosAsync(request.Photos, cancellationToken);
+        var storedImages = await CompletePhotosAsync(photoFiles, cancellationToken);
         var now = DateTimeOffset.UtcNow;
         var post = new Post
         {
@@ -101,11 +103,12 @@ public sealed class PostService(
             var image = storedImages[index];
             post.Photos.Add(new PostPhoto
             {
-                StoragePath = image.StoragePath,
+                FileId = image.FileId,
+                StoragePath = null,
                 OriginalFileName = image.OriginalFileName,
                 ContentType = image.ContentType,
-                Width = image.Width,
-                Height = image.Height,
+                Width = 0,
+                Height = 0,
                 SortOrder = index,
                 CreatedAt = now
             });
@@ -119,7 +122,7 @@ public sealed class PostService(
         catch
         {
             await mediaCleanup.DeleteBestEffortAsync(
-                storedImages.Select(x => x.StoragePath),
+                storedImages.Select(x => x.FileId),
                 "post creation failed");
             throw;
         }
@@ -143,16 +146,18 @@ public sealed class PostService(
             throw ApiException.Forbidden("Only the post author can edit this post.");
         }
 
-        var removalIds = request.RemovedPhotoIds.Distinct().ToHashSet();
-        if (removalIds.Count != request.RemovedPhotoIds.Count || removalIds.Any(id => post.Photos.All(photo => photo.Id != id)))
+        var removedPhotoIds = request.RemovedPhotoIds ?? [];
+        var photoFiles = request.PhotoFiles ?? [];
+        var removalIds = removedPhotoIds.Distinct().ToHashSet();
+        if (removalIds.Count != removedPhotoIds.Count || removalIds.Any(id => post.Photos.All(photo => photo.Id != id)))
         {
             throw ApiException.BadRequest("One or more removed photo IDs are invalid.", "removedPhotoIds");
         }
 
         var remainingPhotoCount = post.Photos.Count - removalIds.Count;
         var content = NormalizeContent(request.Content);
-        ValidatePost(content, remainingPhotoCount + request.Photos.Count);
-        var storedImages = await StorePhotosAsync(request.Photos, cancellationToken);
+        ValidatePost(content, remainingPhotoCount + photoFiles.Count);
+        var storedImages = await CompletePhotosAsync(photoFiles, cancellationToken);
         var removedPhotos = post.Photos.Where(x => removalIds.Contains(x.Id)).ToList();
         var nextSortOrder = post.Photos.Where(x => !removalIds.Contains(x.Id)).Select(x => x.SortOrder).DefaultIfEmpty(-1).Max() + 1;
 
@@ -163,11 +168,12 @@ public sealed class PostService(
             {
                 post.Photos.Add(new PostPhoto
                 {
-                    StoragePath = image.StoragePath,
+                    FileId = image.FileId,
+                    StoragePath = null,
                     OriginalFileName = image.OriginalFileName,
                     ContentType = image.ContentType,
-                    Width = image.Width,
-                    Height = image.Height,
+                    Width = 0,
+                    Height = 0,
                     SortOrder = nextSortOrder++,
                     CreatedAt = DateTimeOffset.UtcNow
                 });
@@ -181,13 +187,13 @@ public sealed class PostService(
         catch
         {
             await mediaCleanup.DeleteBestEffortAsync(
-                storedImages.Select(x => x.StoragePath),
+                storedImages.Select(x => x.FileId),
                 "post update failed");
             throw;
         }
 
         await mediaCleanup.DeleteBestEffortAsync(
-            removedPhotos.Select(x => x.StoragePath),
+            removedPhotos.Where(x => x.FileId.HasValue).Select(x => x.FileId!.Value),
             "post photos were removed after database commit");
         return await LoadResponseAsync(post.Id, user.Id, membership.Role, cancellationToken);
     }
@@ -208,10 +214,10 @@ public sealed class PostService(
             throw ApiException.Forbidden("Only the post author or a family admin can delete this post.");
         }
 
-        var paths = post.Photos.Select(x => x.StoragePath).ToList();
+        var fileIds = post.Photos.Where(x => x.FileId.HasValue).Select(x => x.FileId!.Value).ToList();
         db.Posts.Remove(post);
         await db.SaveChangesAsync(cancellationToken);
-        await mediaCleanup.DeleteBestEffortAsync(paths, "post was deleted after database commit");
+        await mediaCleanup.DeleteBestEffortAsync(fileIds, "post was deleted after database commit");
     }
 
     private IQueryable<Post> PostGraph(bool asTracking)
@@ -332,8 +338,8 @@ public sealed class PostService(
         }
     }
 
-    private async Task<List<StoredImage>> StorePhotosAsync(
-        IReadOnlyCollection<IFormFile> photos,
+    private async Task<List<FileMetadataResponse>> CompletePhotosAsync(
+        IReadOnlyCollection<FileUploadReferenceRequest> photos,
         CancellationToken cancellationToken)
     {
         if (photos.Count > MaxPhotos)
@@ -341,31 +347,31 @@ public sealed class PostService(
             throw ApiException.BadRequest($"A post can contain at most {MaxPhotos} photos.", "photos");
         }
 
-        var storedImages = new List<StoredImage>(photos.Count);
+        var duplicateFileId = photos
+            .GroupBy(x => x.FileId)
+            .FirstOrDefault(group => group.Key == Guid.Empty || group.Count() > 1);
+        if (duplicateFileId is not null)
+        {
+            throw ApiException.BadRequest("Each uploaded photo reference must be unique and valid.", "photoFiles");
+        }
+
+        await MediaFileOperations.RequireUnassociatedAsync(
+            db,
+            photos.Select(x => x.FileId),
+            "photoFiles",
+            cancellationToken);
+
+        var storedImages = new List<FileMetadataResponse>(photos.Count);
         try
         {
             foreach (var photo in photos)
             {
-                if (photo.Length <= 0 || photo.Length > fileStorage.MaxImageBytes)
-                {
-                    throw ApiException.BadRequest(
-                        $"Each photo must be non-empty and no larger than {fileStorage.MaxImageBytes / (1024 * 1024)} MB.",
-                        "photos");
-                }
-
-                try
-                {
-                    await using var input = photo.OpenReadStream();
-                    storedImages.Add(await fileStorage.StoreImageAsync(
-                        input,
-                        photo.FileName,
-                        "posts",
-                        cancellationToken));
-                }
-                catch (InvalidMediaException exception)
-                {
-                    throw ApiException.BadRequest(exception.Message, "photos");
-                }
+                storedImages.Add(await MediaFileOperations.CompleteImageAsync(
+                    fileServiceClient,
+                    mediaCleanup,
+                    photo,
+                    "photoFiles",
+                    cancellationToken));
             }
 
             return storedImages;
@@ -373,7 +379,7 @@ public sealed class PostService(
         catch
         {
             await mediaCleanup.DeleteBestEffortAsync(
-                storedImages.Select(x => x.StoragePath),
+                storedImages.Select(x => x.FileId),
                 "partial post photo upload failed");
             throw;
         }

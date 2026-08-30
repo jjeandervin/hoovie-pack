@@ -24,6 +24,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.ToTable("AppUsers");
             entity.HasKey(x => x.Id);
             entity.HasIndex(x => x.AuthProviderUserId).IsUnique();
+            entity.HasIndex(x => x.AvatarFileId).IsUnique();
             entity.Property(x => x.AuthProviderUserId).HasMaxLength(255);
             entity.Property(x => x.Email).HasMaxLength(320);
             entity.Property(x => x.DisplayName).HasMaxLength(100);
@@ -84,6 +85,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         modelBuilder.Entity<DogProfile>(entity =>
         {
             entity.HasKey(x => x.Id);
+            entity.HasIndex(x => x.PhotoFileId).IsUnique();
             entity.Property(x => x.Name).HasMaxLength(100);
             entity.Property(x => x.PhotoUrl).HasMaxLength(500);
             entity.Property(x => x.PhotoStoragePath).HasMaxLength(500);
@@ -124,6 +126,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         {
             entity.HasKey(x => x.Id);
             entity.HasIndex(x => new { x.PostId, x.SortOrder }).IsUnique();
+            entity.HasIndex(x => x.FileId).IsUnique();
             entity.Property(x => x.StoragePath).HasMaxLength(500);
             entity.Property(x => x.OriginalFileName).HasMaxLength(255);
             entity.Property(x => x.ContentType).HasMaxLength(100);

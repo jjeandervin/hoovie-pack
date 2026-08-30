@@ -10,14 +10,14 @@ public interface IProfileService
 {
     Task<MeResponse> GetMeAsync(ClaimsPrincipal principal, CancellationToken cancellationToken = default);
     Task<MeResponse> UpdateMeAsync(ClaimsPrincipal principal, UpdateProfileRequest request, CancellationToken cancellationToken = default);
-    Task<MeResponse> UpdateAvatarAsync(ClaimsPrincipal principal, IFormFile avatar, CancellationToken cancellationToken = default);
+    Task<MeResponse> UpdateAvatarAsync(ClaimsPrincipal principal, FileUploadReferenceRequest avatar, CancellationToken cancellationToken = default);
     Task<UserSummaryResponse> GetUserAsync(ClaimsPrincipal principal, Guid userId, CancellationToken cancellationToken = default);
 }
 
 public sealed class ProfileService(
     AppDbContext db,
     IIdentityService identityService,
-    IFileStorage fileStorage,
+    IFileServiceClient fileServiceClient,
     IMediaCleanupService mediaCleanup) : IProfileService
 {
     public async Task<MeResponse> GetMeAsync(
@@ -49,32 +49,27 @@ public sealed class ProfileService(
 
     public async Task<MeResponse> UpdateAvatarAsync(
         ClaimsPrincipal principal,
-        IFormFile avatar,
+        FileUploadReferenceRequest avatar,
         CancellationToken cancellationToken = default)
     {
         var user = await identityService.GetCurrentUserAsync(principal, cancellationToken);
-        if (avatar.Length <= 0 || avatar.Length > fileStorage.MaxImageBytes)
-        {
-            throw ApiException.BadRequest(
-                $"Avatar must be a non-empty image no larger than {fileStorage.MaxImageBytes / (1024 * 1024)} MB.",
-                "avatar");
-        }
+        await MediaFileOperations.RequireUnassociatedAsync(
+            db,
+            [avatar.FileId],
+            "avatar",
+            cancellationToken);
+        var stored = await MediaFileOperations.CompleteImageAsync(
+            fileServiceClient,
+            mediaCleanup,
+            avatar,
+            "avatar",
+            cancellationToken);
 
-        StoredImage stored;
+        var previousFileId = user.AvatarFileId;
         try
         {
-            await using var input = avatar.OpenReadStream();
-            stored = await fileStorage.StoreImageAsync(input, avatar.FileName, "avatars", cancellationToken);
-        }
-        catch (InvalidMediaException exception)
-        {
-            throw ApiException.BadRequest(exception.Message, "avatar");
-        }
-
-        var previousPath = user.AvatarStoragePath;
-        try
-        {
-            user.AvatarStoragePath = stored.StoragePath;
+            user.AvatarFileId = stored.FileId;
+            user.AvatarStoragePath = null;
             user.AvatarContentType = stored.ContentType;
             user.AvatarUrl = $"/api/media/avatars/{user.Id}";
             user.UpdatedAt = DateTimeOffset.UtcNow;
@@ -82,11 +77,15 @@ public sealed class ProfileService(
         }
         catch
         {
-            await mediaCleanup.DeleteBestEffortAsync(stored.StoragePath, "avatar database update failed");
+            await mediaCleanup.DeleteBestEffortAsync(stored.FileId, "avatar database update failed");
             throw;
         }
 
-        await mediaCleanup.DeleteBestEffortAsync(previousPath, "avatar was replaced after database commit");
+        if (previousFileId != stored.FileId)
+        {
+            await mediaCleanup.DeleteBestEffortAsync(previousFileId, "avatar was replaced after database commit");
+        }
+
         return MapMe(user);
     }
 

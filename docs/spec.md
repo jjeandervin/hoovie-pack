@@ -61,9 +61,9 @@ Post rules:
 - at most 10 MiB per photo
 - accepted formats: JPEG, PNG, and WebP
 
-The API generates safe server-side names, validates actual type and size, stores photo metadata in PostgreSQL, and stores files in a mounted persistent volume. Media is private by default and must be served only through family-authorized endpoints. Storage sits behind an abstraction so S3 or MinIO can replace local disk later.
+The domain API validates authorization and declared metadata, then calls an internal File Service. That service creates a stable `FileId`, owns the private storage-key mapping/metadata, and issues short-lived presigned URLs. The browser transfers bytes directly to or from a private Amazon S3 bucket; file bodies never pass through the domain API, File Service, or Nginx. AWS credentials remain backend-only.
 
-Photo metadata includes ID, post ID, storage path, original file name, content type, dimensions, sort order, and creation timestamp. Orphaned files should be removed when practical.
+Domain photo metadata includes the domain photo ID, post ID, stable `FileId`, original file name, content type, sort order, and creation timestamp. Storage metadata includes `FileId`, internal S3 key, original name, content type, declared/observed size, and creation time. Raw keys and presigned URLs are not domain identifiers and are not persisted outside the File Service. Orphaned metadata/objects should be reconciled when practical.
 
 ### Comments and reactions
 
@@ -76,6 +76,8 @@ Supported reactions are `paw`, `heart`, and `bone`. A user may toggle one reacti
 - direct messaging
 - notifications and push notifications
 - video uploads
+- image resizing, thumbnails, optimization, format conversion, and EXIF processing
+- CloudFront/CDN, Lambda/S3 event processing, and SQS media pipelines
 - stories or reels
 - advanced moderation
 - separate albums
@@ -122,7 +124,8 @@ Layouts begin at small-phone widths and expand cleanly. Mobile has fixed/sticky 
 - ASP.NET Core Web API on modern .NET (target .NET 10 where available)
 - Entity Framework Core, code-first migrations, and PostgreSQL
 - Keycloak for OAuth/OIDC
-- mounted server filesystem for private uploads
+- dedicated internal File Service with stable `FileId` metadata and private Amazon S3 storage
+- browser-to-S3 transfer through short-lived presigned PUT/GET URLs
 - Dockerfiles, Docker Compose, and Linux Nginx reverse proxy
 
 Keep frontend state in focused Angular services unless a heavier state library becomes demonstrably useful. Use DTOs and explicit API contracts. Organize backend concerns into domain, application, infrastructure/data, authentication, storage, and endpoint/controller layers.
@@ -132,7 +135,7 @@ Keep frontend state in focused Angular services unless a heavier state library b
 ```text
 apps/
   web/                 Angular application and Dockerfile
-  api/                 ASP.NET Core API, EF migrations, and app/migration Dockerfiles
+  api/                 domain API + File Service, separate EF contexts, and service/migration Dockerfiles
 infra/
   nginx/               production reverse proxy and TLS paths
   keycloak/            importable realm configuration
@@ -145,11 +148,13 @@ docs/spec.md
 
 ### Runtime services and URLs
 
-Compose runs `web`, `api`, `postgres`, and `keycloak`, with a dedicated Keycloak database and named volumes for application data, identity data, and media. The production overlay also defines a profile-gated, one-shot `db-migrations` service that is run explicitly before application updates and is excluded from normal `up` commands. The optional production-profile `nginx` service routes:
+Compose runs `web`, `api`, internal-only `files-api`, `postgres`, and `keycloak`, with a dedicated Keycloak database and named volumes for application and identity data. A retained legacy `media_data` volume is a migration/rollback source only and is not mounted by the normal API. The production overlay defines profile-gated `db-migrations` and `files-db-migrations` jobs that run explicitly before application updates and are excluded from normal `up` commands. The optional production-profile `nginx` service routes:
 
 - `https://hooviestar.com` to Angular
 - `https://hooviestar.com/api` to ASP.NET Core
 - `https://auth.hooviestar.com` to Keycloak
+
+It never routes `files-api`; browsers use presigned regional S3 URLs directly. Production removes the File Service development port and keeps it off the external proxy network.
 
 Configuration and credentials come from environment variables; no real secret is committed.
 
@@ -186,7 +191,7 @@ RESTful JSON route groups:
 - `/api/families/{familyId}/posts`
 - `/api/posts/{postId}/comments`
 - `/api/posts/{postId}/reactions`
-- authorized upload/media routes
+- authorized upload initialization, FileId association, and download-URL routes
 
 Every secured endpoint verifies the authenticated OIDC subject, family membership, and required ownership/role. Object IDs supplied by clients never establish authorization on their own. Examples:
 
@@ -195,21 +200,21 @@ Every secured endpoint verifies the authenticated OIDC subject, family membershi
 - only comment author or Owner/Admin can delete a comment
 - only Owner/Admin can invite or remove members
 
-Validate DTOs, normalize invite behavior, and return clear RFC-appropriate errors. CORS is restricted to the configured app origin. Authentication failures must not reveal private entity existence.
+Validate DTOs, normalize invite behavior, and return clear RFC-appropriate errors. Main API CORS is restricted to the configured app origin; the private bucket has an exact-origin/method/header CORS rule for direct transfer. Authentication failures must not reveal private entity existence. Presigned URLs are short-lived capabilities and are never logged or persisted.
 
 In Development, expose Swagger UI at `/swagger` with an Authorize/Bearer security definition so protected endpoints can be exercised with a Keycloak access token. Do not expose Swagger UI in Production.
 
 ## Persistence and operations
 
-Commit the initial EF Core migration. Development can apply migrations on API startup. Production API containers must keep automatic migrations disabled. Production deployment must back up data, run reviewed migrations through the dedicated one-shot migration image, abort the application update on migration failure, and verify application health after success.
+Commit migrations for both `AppDbContext` and the File Service's `FilesDbContext`/`files` schema. Development can apply them on service startup. Production service containers keep automatic migrations disabled. Deployment backs up data, runs both reviewed one-shot bundles in order, aborts the application update on either failure, and verifies both services after success.
 
 Named storage survives container replacement:
 
 - PostgreSQL application data
 - Keycloak PostgreSQL data
-- uploaded media
+- private S3 file objects
 
-Backups must cover all three, be encrypted/off-host, and be restoration-tested. Nginx terminates TLS; PostgreSQL and Keycloak management endpoints remain private. Inputs, file content, family boundaries, issuer, audience, CORS, and proxy headers are validated server-side.
+Backups must cover all three, be encrypted/off-host, preserve database/S3 recovery-point consistency, and be restoration-tested. Existing local media is inventoried and migrated idempotently by the explicit, profile-gated legacy importer during a maintenance window; its source is mounted read-only, startup never performs a destructive or implicit byte migration, and cutover is blocked if referenced files cannot be verified in S3. Nginx terminates TLS; PostgreSQL, Keycloak management, and the File Service remain private. Inputs, metadata, family boundaries, issuer, audience, CORS, CSP, and proxy headers are validated server-side.
 
 ## Non-functional requirements
 
@@ -218,7 +223,7 @@ Backups must cover all three, be encrypted/off-host, and be restoration-tested. 
 - clear loading, empty, and error states
 - readable, maintainable code with comments only where they add context
 - healthchecks for containers and documented local/production operations
-- no committed secrets or public media directory bypass
+- no committed secrets, public bucket/object ACL, or public File Service route
 
 ## Acceptance criteria
 
@@ -233,8 +238,8 @@ The MVP is complete when:
 7. Members comment and toggle paw/heart/bone reactions.
 8. Members can create and view dog profiles.
 9. The UI is responsive, accessible, earthy, polished, and subtly corgi-themed.
-10. PostgreSQL data, Keycloak data, and media persist across restarts.
-11. EF Core migrations and dedicated application/migration Dockerfiles are committed.
+10. PostgreSQL data, Keycloak data, and private S3 objects persist across restarts.
+11. Both EF Core contexts and dedicated service/migration Dockerfiles are committed.
 12. The documented Nginx profile can serve `hooviestar.com` and `auth.hooviestar.com` over TLS.
 
 When tradeoffs are required, prefer simple architecture, correct authentication, good mobile UX, strict family privacy boundaries, and tasteful branding—in that order.

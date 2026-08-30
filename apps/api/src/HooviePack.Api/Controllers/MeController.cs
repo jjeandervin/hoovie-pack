@@ -23,11 +23,9 @@ public sealed class MeController(IProfileService profileService) : ControllerBas
         Ok(await profileService.UpdateMeAsync(User, request, cancellationToken));
 
     [HttpPost("avatar")]
-    [Consumes("multipart/form-data")]
-    [RequestSizeLimit(11 * 1024 * 1024)]
     [ProducesResponseType<MeResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<MeResponse>> UpdateAvatar(
-        [FromForm] AvatarUploadRequest request,
+        [FromBody] FileUploadReferenceRequest request,
         CancellationToken cancellationToken) =>
-        Ok(await profileService.UpdateAvatarAsync(User, request.Avatar, cancellationToken));
+        Ok(await profileService.UpdateAvatarAsync(User, request, cancellationToken));
 }

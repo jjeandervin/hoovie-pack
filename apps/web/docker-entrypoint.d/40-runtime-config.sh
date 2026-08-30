@@ -7,6 +7,7 @@ oidc_client_id="${OIDC_CLIENT_ID:-hooviepack-web}"
 oidc_redirect_uri="${OIDC_REDIRECT_URI:-}"
 oidc_post_logout_redirect_uri="${OIDC_POST_LOGOUT_REDIRECT_URI:-}"
 csp_oidc_origin="${CSP_OIDC_ORIGIN:-http://localhost:8081}"
+csp_s3_origin="${CSP_S3_ORIGIN:?CSP_S3_ORIGIN is required}"
 
 if ! printf '%s\n' "$csp_oidc_origin" \
   | grep -Eq '^https?://([A-Za-z0-9.-]+|\[[0-9A-Fa-f:]+\])(:[0-9]{1,5})?$'; then
@@ -14,9 +15,16 @@ if ! printf '%s\n' "$csp_oidc_origin" \
   exit 1
 fi
 
-# Substitute only this placeholder so nginx runtime variables remain intact.
+if ! printf '%s\n' "$csp_s3_origin" \
+  | grep -Eq '^https://([A-Za-z0-9.-]+|\[[0-9A-Fa-f:]+\])(:[0-9]{1,5})?$'; then
+  printf 'CSP_S3_ORIGIN must contain only an HTTPS scheme, host, and optional port.\n' >&2
+  exit 1
+fi
+
+# Substitute only these placeholders so nginx runtime variables remain intact.
 export CSP_OIDC_ORIGIN="$csp_oidc_origin"
-envsubst '${CSP_OIDC_ORIGIN}' \
+export CSP_S3_ORIGIN="$csp_s3_origin"
+envsubst '${CSP_OIDC_ORIGIN} ${CSP_S3_ORIGIN}' \
   < /etc/nginx/conf.d/default.conf \
   > /tmp/hooviepack-nginx.conf
 mv /tmp/hooviepack-nginx.conf /etc/nginx/conf.d/default.conf

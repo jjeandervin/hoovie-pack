@@ -1,4 +1,3 @@
-using System.Buffers.Binary;
 using System.Security.Claims;
 using HooviePack.Api.Application;
 using HooviePack.Api.Application.Contracts;
@@ -6,12 +5,11 @@ using HooviePack.Api.Application.Services;
 using HooviePack.Api.Domain;
 using HooviePack.Api.Infrastructure.Data;
 using HooviePack.Api.Infrastructure.Storage;
+using HooviePack.Files.Domain;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace HooviePack.Api.Tests;
 
@@ -164,7 +162,7 @@ public sealed class CoreBehaviorTests
             db,
             new IdentityService(db),
             new FamilyAccessService(db),
-            new UnusedFileStorage(),
+            new UnusedFileServiceClient(),
             new NoOpMediaCleanup());
 
         var created = await service.CreateAsync(
@@ -191,90 +189,15 @@ public sealed class CoreBehaviorTests
     }
 
     [Fact]
-    public async Task Image_inspector_fully_decodes_a_real_png()
-    {
-        var path = TempFile(".png");
-        try
-        {
-            using (var image = new Image<Rgba32>(640, 480))
-            {
-                await image.SaveAsPngAsync(path);
-            }
-
-            var metadata = await ImageFileInspector.InspectAsync(path);
-
-            Assert.Equal("image/png", metadata.ContentType);
-            Assert.Equal(".png", metadata.Extension);
-            Assert.Equal(640, metadata.Width);
-            Assert.Equal(480, metadata.Height);
-        }
-        finally
-        {
-            File.Delete(path);
-        }
-    }
-
-    [Fact]
-    public async Task Image_inspector_rejects_a_structural_fake_with_a_png_header()
-    {
-        var path = TempFile(".png");
-        try
-        {
-            await File.WriteAllBytesAsync(path, BuildPngHeader(640, 480));
-
-            await Assert.ThrowsAsync<InvalidMediaException>(() => ImageFileInspector.InspectAsync(path));
-        }
-        finally
-        {
-            File.Delete(path);
-        }
-    }
-
-    [Fact]
-    public async Task Image_inspector_normalizes_malformed_overflow_dimensions()
-    {
-        var path = TempFile(".png");
-        try
-        {
-            await File.WriteAllBytesAsync(path, BuildPngHeader(uint.MaxValue, uint.MaxValue));
-
-            await Assert.ThrowsAsync<InvalidMediaException>(() => ImageFileInspector.InspectAsync(path));
-        }
-        finally
-        {
-            File.Delete(path);
-        }
-    }
-
-    [Fact]
-    public async Task Image_inspector_rejects_a_valid_but_unsupported_gif()
-    {
-        var path = TempFile(".gif");
-        try
-        {
-            using (var image = new Image<Rgba32>(10, 10))
-            {
-                await image.SaveAsGifAsync(path);
-            }
-
-            await Assert.ThrowsAsync<InvalidMediaException>(() => ImageFileInspector.InspectAsync(path));
-        }
-        finally
-        {
-            File.Delete(path);
-        }
-    }
-
-    [Fact]
     public async Task Best_effort_cleanup_ignores_request_cancellation_and_does_not_rethrow_delete_failure()
     {
-        var storage = new ThrowingDeleteFileStorage();
-        var service = new MediaCleanupService(storage, NullLogger<MediaCleanupService>.Instance);
+        var fileService = new ThrowingDeleteFileServiceClient();
+        var service = new MediaCleanupService(fileService, NullLogger<MediaCleanupService>.Instance);
 
-        await service.DeleteBestEffortAsync("posts/example.png", "test cleanup");
+        await service.DeleteBestEffortAsync(Guid.CreateVersion7(), "test cleanup");
 
-        Assert.Equal(1, storage.DeleteAttempts);
-        Assert.False(storage.DeleteToken.CanBeCanceled);
+        Assert.Equal(1, fileService.DeleteAttempts);
+        Assert.False(fileService.DeleteToken.CanBeCanceled);
     }
 
     [Fact]
@@ -287,30 +210,13 @@ public sealed class CoreBehaviorTests
 
         var handled = await handler.TryHandleAsync(
             context,
-            new BadHttpRequestException("Multipart body length limit exceeded.", StatusCodes.Status413PayloadTooLarge),
+            new BadHttpRequestException("Request body too large.", StatusCodes.Status413PayloadTooLarge),
             CancellationToken.None);
 
         Assert.True(handled);
         Assert.Equal(StatusCodes.Status413PayloadTooLarge, context.Response.StatusCode);
         Assert.Equal("Payload too large", problemWriter.Problem?.Title);
         Assert.Equal(StatusCodes.Status413PayloadTooLarge, problemWriter.Problem?.Status);
-    }
-
-    [Fact]
-    public async Task Exception_handler_maps_multipart_form_limit_to_413_problem_details()
-    {
-        var problemWriter = new CapturingProblemDetailsService();
-        var handler = new ApiExceptionHandler(problemWriter, NullLogger<ApiExceptionHandler>.Instance);
-        var context = new DefaultHttpContext();
-
-        var handled = await handler.TryHandleAsync(
-            context,
-            new InvalidDataException("Multipart body length limit 44040192 exceeded."),
-            CancellationToken.None);
-
-        Assert.True(handled);
-        Assert.Equal(StatusCodes.Status413PayloadTooLarge, context.Response.StatusCode);
-        Assert.Equal("Payload too large", problemWriter.Problem?.Title);
     }
 
     [Fact]
@@ -344,7 +250,7 @@ public sealed class CoreBehaviorTests
         db,
         new IdentityService(db),
         new FamilyAccessService(db),
-        new UnusedFileStorage(),
+        new UnusedFileServiceClient(),
         new NoOpMediaCleanup());
 
     private static async Task<(AppUser Owner, Family Family)> SeedFamilyAsync(AppDbContext db)
@@ -393,24 +299,6 @@ public sealed class CoreBehaviorTests
     private static ClaimsPrincipal Principal(string subject) => new(
         new ClaimsIdentity([new Claim("sub", subject)], "test"));
 
-    private static string TempFile(string extension) =>
-        Path.Combine(Path.GetTempPath(), $"hooviepack-{Guid.NewGuid():N}{extension}");
-
-    private static byte[] BuildPngHeader(uint width, uint height)
-    {
-        var bytes = new byte[45];
-        new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }.CopyTo(bytes, 0);
-        BinaryPrimitives.WriteUInt32BigEndian(bytes.AsSpan(8, 4), 13);
-        "IHDR"u8.CopyTo(bytes.AsSpan(12, 4));
-        BinaryPrimitives.WriteUInt32BigEndian(bytes.AsSpan(16, 4), width);
-        BinaryPrimitives.WriteUInt32BigEndian(bytes.AsSpan(20, 4), height);
-        bytes[24] = 8;
-        bytes[25] = 6;
-        BinaryPrimitives.WriteUInt32BigEndian(bytes.AsSpan(33, 4), 0);
-        "IEND"u8.CopyTo(bytes.AsSpan(37, 4));
-        return bytes;
-    }
-
     private sealed class CapturingProblemDetailsService : IProblemDetailsService
     {
         public ProblemDetails? Problem { get; private set; }
@@ -430,38 +318,41 @@ public sealed class CoreBehaviorTests
 
     private sealed class NoOpMediaCleanup : IMediaCleanupService
     {
-        public Task DeleteBestEffortAsync(string? storagePath, string reason) => Task.CompletedTask;
+        public Task DeleteBestEffortAsync(Guid? fileId, string reason) => Task.CompletedTask;
 
-        public Task DeleteBestEffortAsync(IEnumerable<string> storagePaths, string reason) => Task.CompletedTask;
+        public Task DeleteBestEffortAsync(IEnumerable<Guid> fileIds, string reason) => Task.CompletedTask;
     }
 
-    private class UnusedFileStorage : IFileStorage
+    private class UnusedFileServiceClient : IFileServiceClient
     {
         public long MaxImageBytes => 10 * 1024 * 1024;
 
-        public Task<StoredImage> StoreImageAsync(
-            Stream input,
-            string originalFileName,
-            string category,
+        public Task<UploadResponse> CreateUploadAsync(
+            CreateUploadRequest request,
             CancellationToken cancellationToken = default) =>
-            throw new InvalidOperationException("No image should be stored in this test.");
+            throw new InvalidOperationException("No upload should be created in this test.");
 
-        public Task<StoredFile?> OpenReadAsync(
-            string storagePath,
-            string contentType,
+        public Task<FileMetadataResponse> CompleteUploadAsync(
+            Guid fileId,
+            string uploadToken,
             CancellationToken cancellationToken = default) =>
-            throw new InvalidOperationException("No image should be opened in this test.");
+            throw new InvalidOperationException("No upload should be completed in this test.");
 
-        public virtual Task DeleteAsync(string? storagePath, CancellationToken cancellationToken = default) =>
+        public Task<DownloadResponse> GetDownloadAsync(
+            Guid fileId,
+            CancellationToken cancellationToken = default) =>
+            throw new InvalidOperationException("No download should be created in this test.");
+
+        public virtual Task DeleteAsync(Guid fileId, CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
     }
 
-    private sealed class ThrowingDeleteFileStorage : UnusedFileStorage
+    private sealed class ThrowingDeleteFileServiceClient : UnusedFileServiceClient
     {
         public int DeleteAttempts { get; private set; }
         public CancellationToken DeleteToken { get; private set; }
 
-        public override Task DeleteAsync(string? storagePath, CancellationToken cancellationToken = default)
+        public override Task DeleteAsync(Guid fileId, CancellationToken cancellationToken = default)
         {
             DeleteAttempts++;
             DeleteToken = cancellationToken;

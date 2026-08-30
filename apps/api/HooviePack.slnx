@@ -1,8 +1,13 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/HooviePack.Api/HooviePack.Api.csproj" />
+    <Project Path="src/HooviePack.FileMigration/HooviePack.FileMigration.csproj" />
+    <Project Path="src/HooviePack.Files.Api/HooviePack.Files.Api.csproj" />
+    <Project Path="src/HooviePack.Files.Domain/HooviePack.Files.Domain.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/HooviePack.Api.Tests/HooviePack.Api.Tests.csproj" />
+    <Project Path="tests/HooviePack.FileMigration.Tests/HooviePack.FileMigration.Tests.csproj" />
+    <Project Path="tests/HooviePack.Files.Api.Tests/HooviePack.Files.Api.Tests.csproj" />
   </Folder>
 </Solution>

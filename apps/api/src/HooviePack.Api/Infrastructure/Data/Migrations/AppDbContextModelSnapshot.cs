@@ -37,6 +37,9 @@ namespace HooviePack.Api.Infrastructure.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<Guid?>("AvatarFileId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("AvatarStoragePath")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -71,6 +74,9 @@ namespace HooviePack.Api.Infrastructure.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AuthProviderUserId")
+                        .IsUnique();
+
+                    b.HasIndex("AvatarFileId")
                         .IsUnique();
 
                     b.ToTable("AppUsers", (string)null);
@@ -153,6 +159,9 @@ namespace HooviePack.Api.Infrastructure.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<Guid?>("PhotoFileId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("PhotoStoragePath")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -171,6 +180,9 @@ namespace HooviePack.Api.Infrastructure.Data.Migrations
                     b.HasIndex("FamilyId");
 
                     b.HasIndex("OwnerMembershipId");
+
+                    b.HasIndex("PhotoFileId")
+                        .IsUnique();
 
                     b.ToTable("DogProfiles");
                 });
@@ -344,6 +356,9 @@ namespace HooviePack.Api.Infrastructure.Data.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("FileId")
+                        .HasColumnType("uuid");
+
                     b.Property<int>("Height")
                         .HasColumnType("integer");
 
@@ -359,7 +374,6 @@ namespace HooviePack.Api.Infrastructure.Data.Migrations
                         .HasColumnType("integer");
 
                     b.Property<string>("StoragePath")
-                        .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
@@ -367,6 +381,9 @@ namespace HooviePack.Api.Infrastructure.Data.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("FileId")
+                        .IsUnique();
 
                     b.HasIndex("PostId", "SortOrder")
                         .IsUnique();

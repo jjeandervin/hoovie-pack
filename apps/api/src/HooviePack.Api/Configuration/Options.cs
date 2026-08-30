@@ -15,6 +15,14 @@ public sealed class MediaStorageOptions
 {
     public const string SectionName = "MediaStorage";
 
-    public string RootPath { get; set; } = "media";
     public long MaxImageBytes { get; set; } = 10 * 1024 * 1024;
+}
+
+public sealed class FileServiceOptions
+{
+    public const string SectionName = "FileService";
+
+    public string BaseUrl { get; set; } = "http://files-api:8080";
+    public string? ApiKey { get; set; }
+    public int TimeoutSeconds { get; set; } = 10;
 }

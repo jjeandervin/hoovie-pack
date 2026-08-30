@@ -2,40 +2,40 @@ namespace HooviePack.Api.Infrastructure.Storage;
 
 public interface IMediaCleanupService
 {
-    Task DeleteBestEffortAsync(string? storagePath, string reason);
-    Task DeleteBestEffortAsync(IEnumerable<string> storagePaths, string reason);
+    Task DeleteBestEffortAsync(Guid? fileId, string reason);
+    Task DeleteBestEffortAsync(IEnumerable<Guid> fileIds, string reason);
 }
 
 public sealed class MediaCleanupService(
-    IFileStorage fileStorage,
+    IFileServiceClient fileServiceClient,
     ILogger<MediaCleanupService> logger) : IMediaCleanupService
 {
-    public async Task DeleteBestEffortAsync(string? storagePath, string reason)
+    public async Task DeleteBestEffortAsync(Guid? fileId, string reason)
     {
-        if (string.IsNullOrWhiteSpace(storagePath))
+        if (fileId is null || fileId == Guid.Empty)
         {
             return;
         }
 
         try
         {
-            await fileStorage.DeleteAsync(storagePath, CancellationToken.None);
+            await fileServiceClient.DeleteAsync(fileId.Value, CancellationToken.None);
         }
         catch (Exception exception)
         {
             logger.LogWarning(
                 exception,
-                "Best-effort media cleanup failed for {StoragePath}. Reason: {Reason}",
-                storagePath,
+                "Best-effort media cleanup failed for file {FileId}. Reason: {Reason}",
+                fileId,
                 reason);
         }
     }
 
-    public async Task DeleteBestEffortAsync(IEnumerable<string> storagePaths, string reason)
+    public async Task DeleteBestEffortAsync(IEnumerable<Guid> fileIds, string reason)
     {
-        foreach (var storagePath in storagePaths.Distinct(StringComparer.Ordinal))
+        foreach (var fileId in fileIds.Where(x => x != Guid.Empty).Distinct())
         {
-            await DeleteBestEffortAsync(storagePath, reason);
+            await DeleteBestEffortAsync(fileId, reason);
         }
     }
 }

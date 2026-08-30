@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Directive, ElementRef, EventEmitter, Input, OnDestroy, Output, Renderer2 } from '@angular/core';
 import { Subscription, finalize } from 'rxjs';
+import { FileDownloadResponse } from '../core/models';
 import { RuntimeConfigService } from '../core/runtime-config.service';
 
 @Directive({
@@ -9,7 +10,6 @@ import { RuntimeConfigService } from '../core/runtime-config.service';
 })
 export class AuthImageDirective implements OnDestroy {
   private request?: Subscription;
-  private objectUrl?: string;
   private generation = 0;
 
   constructor(
@@ -28,13 +28,11 @@ export class AuthImageDirective implements OnDestroy {
 
   ngOnDestroy(): void {
     this.request?.unsubscribe();
-    this.revokeObjectUrl();
   }
 
   private load(source: string | null | undefined): void {
     const generation = ++this.generation;
     this.request?.unsubscribe();
-    this.revokeObjectUrl();
     this.renderer.addClass(this.element.nativeElement, 'auth-image--loading');
     this.renderer.removeClass(this.element.nativeElement, 'auth-image--error');
 
@@ -52,28 +50,27 @@ export class AuthImageDirective implements OnDestroy {
       return;
     }
 
-    this.request = this.http.get(url, { responseType: 'blob' }).pipe(
+    this.request = this.http.get<FileDownloadResponse>(url).pipe(
       finalize(() => {
         if (generation === this.generation) this.renderer.removeClass(this.element.nativeElement, 'auth-image--loading');
       })
     ).subscribe({
-      next: (blob) => {
+      next: (download) => {
         if (generation !== this.generation) return;
-        this.objectUrl = URL.createObjectURL(blob);
-        this.renderer.setAttribute(this.element.nativeElement, 'src', this.objectUrl);
+        if (!download.downloadUrl) {
+          this.handleError(generation);
+          return;
+        }
+        this.renderer.setAttribute(this.element.nativeElement, 'src', download.downloadUrl);
       },
-      error: () => {
-        if (generation !== this.generation) return;
-        this.renderer.removeAttribute(this.element.nativeElement, 'src');
-        this.renderer.addClass(this.element.nativeElement, 'auth-image--error');
-        this.authImageError.emit();
-      }
+      error: () => this.handleError(generation)
     });
   }
 
-  private revokeObjectUrl(): void {
-    if (!this.objectUrl) return;
-    URL.revokeObjectURL(this.objectUrl);
-    this.objectUrl = undefined;
+  private handleError(generation: number): void {
+    if (generation !== this.generation) return;
+    this.renderer.removeAttribute(this.element.nativeElement, 'src');
+    this.renderer.addClass(this.element.nativeElement, 'auth-image--error');
+    this.authImageError.emit();
   }
 }

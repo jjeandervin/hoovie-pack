@@ -6,6 +6,7 @@ public sealed class DogProfile : Entity
     public Family Family { get; set; } = null!;
     public required string Name { get; set; }
     public string? PhotoUrl { get; set; }
+    public Guid? PhotoFileId { get; set; }
     public string? PhotoStoragePath { get; set; }
     public string? PhotoContentType { get; set; }
     public string? Breed { get; set; }

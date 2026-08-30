@@ -20,12 +20,10 @@ public sealed class FamilyPostsController(IPostService postService) : Controller
         Ok(await postService.ListAsync(User, familyId, page, pageSize, cancellationToken));
 
     [HttpPost]
-    [Consumes("multipart/form-data")]
-    [RequestSizeLimit(42 * 1024 * 1024)]
     [ProducesResponseType<PostResponse>(StatusCodes.Status201Created)]
     public async Task<ActionResult<PostResponse>> Create(
         Guid familyId,
-        [FromForm] CreatePostRequest request,
+        [FromBody] CreatePostRequest request,
         CancellationToken cancellationToken)
     {
         var post = await postService.CreateAsync(User, familyId, request, cancellationToken);

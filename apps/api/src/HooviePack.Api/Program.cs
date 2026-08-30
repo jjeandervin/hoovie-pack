@@ -8,20 +8,45 @@ using HooviePack.Api.Infrastructure.Data;
 using HooviePack.Api.Infrastructure.Storage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
-const long maxRequestBodyBytes = 42L * 1024 * 1024;
-
-builder.WebHost.ConfigureKestrel(options =>
-    options.Limits.MaxRequestBodySize = maxRequestBodyBytes);
 
 builder.Services.Configure<MediaStorageOptions>(
     builder.Configuration.GetSection(MediaStorageOptions.SectionName));
+builder.Services.Configure<FileServiceOptions>(
+    builder.Configuration.GetSection(FileServiceOptions.SectionName));
+
+var fileServiceOptions = builder.Configuration
+    .GetSection(FileServiceOptions.SectionName)
+    .Get<FileServiceOptions>() ?? new FileServiceOptions();
+if (!Uri.TryCreate(fileServiceOptions.BaseUrl, UriKind.Absolute, out var fileServiceBaseUri) ||
+    (fileServiceBaseUri.Scheme != Uri.UriSchemeHttp && fileServiceBaseUri.Scheme != Uri.UriSchemeHttps))
+{
+    throw new InvalidOperationException("FileService:BaseUrl must be an absolute HTTP(S) URL.");
+}
+
+if (fileServiceOptions.TimeoutSeconds is < 1 or > 60)
+{
+    throw new InvalidOperationException("FileService:TimeoutSeconds must be between 1 and 60.");
+}
+
+var normalizedFileServiceBaseUri = new Uri(fileServiceBaseUri.AbsoluteUri.TrimEnd('/') + "/");
+void ConfigureFileServiceClient(HttpClient client)
+{
+    client.BaseAddress = normalizedFileServiceBaseUri;
+    client.Timeout = TimeSpan.FromSeconds(fileServiceOptions.TimeoutSeconds);
+    if (!string.IsNullOrWhiteSpace(fileServiceOptions.ApiKey))
+    {
+        client.DefaultRequestHeaders.Add("X-Internal-Api-Key", fileServiceOptions.ApiKey);
+    }
+}
+
+builder.Services.AddHttpClient<IFileServiceClient, FileServiceClient>(ConfigureFileServiceClient);
+builder.Services.AddHttpClient<FileServiceHealthCheck>(ConfigureFileServiceClient);
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 if (string.IsNullOrWhiteSpace(connectionString))
@@ -37,12 +62,6 @@ builder.Services
     .AddControllers()
     .AddJsonOptions(options =>
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)));
-
-builder.Services.Configure<FormOptions>(options =>
-{
-    options.MultipartBodyLengthLimit = maxRequestBodyBytes;
-    options.ValueLengthLimit = 2 * 1024 * 1024;
-});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -130,7 +149,12 @@ builder.Services.AddHealthChecks()
         "postgres",
         failureStatus: HealthStatus.Unhealthy,
         tags: ["ready"],
-        timeout: TimeSpan.FromSeconds(4));
+        timeout: TimeSpan.FromSeconds(4))
+    .AddCheck<FileServiceHealthCheck>(
+        "files-api",
+        failureStatus: HealthStatus.Unhealthy,
+        tags: ["ready"],
+        timeout: TimeSpan.FromSeconds(Math.Min(fileServiceOptions.TimeoutSeconds, 10)));
 
 builder.Services.AddScoped<IIdentityService, IdentityService>();
 builder.Services.AddScoped<IFamilyAccessService, FamilyAccessService>();
@@ -142,8 +166,7 @@ builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<IReactionService, ReactionService>();
 builder.Services.AddScoped<IMediaService, MediaService>();
 builder.Services.AddScoped<IApplicationHealthService, ApplicationHealthService>();
-builder.Services.AddSingleton<IFileStorage, LocalFileStorage>();
-builder.Services.AddSingleton<IMediaCleanupService, MediaCleanupService>();
+builder.Services.AddScoped<IMediaCleanupService, MediaCleanupService>();
 
 var app = builder.Build();
 

@@ -6,6 +6,7 @@ public sealed class AppUser : Entity
     public required string Email { get; set; }
     public required string DisplayName { get; set; }
     public string? AvatarUrl { get; set; }
+    public Guid? AvatarFileId { get; set; }
     public string? AvatarStoragePath { get; set; }
     public string? AvatarContentType { get; set; }
     public string? Bio { get; set; }

@@ -1,5 +1,31 @@
 export type MembershipRole = 'Owner' | 'Admin' | 'Member';
 export type ReactionType = 'paw' | 'heart' | 'bone';
+export type FileUploadPurpose = 'avatar' | 'dogPhoto' | 'postPhoto';
+
+export interface FileReference {
+  fileId: string;
+  uploadToken: string;
+}
+
+export interface FileUploadRequest {
+  fileName: string;
+  contentType: string;
+  size: number;
+  purpose: FileUploadPurpose;
+  familyId?: string;
+}
+
+export interface FileUploadResponse extends FileReference {
+  uploadUrl: string;
+  expiresAt: string;
+  requiredHeaders: Record<string, string>;
+}
+
+export interface FileDownloadResponse {
+  fileId: string;
+  downloadUrl: string;
+  expiresAt: string;
+}
 
 export interface UserProfile {
   id: string;

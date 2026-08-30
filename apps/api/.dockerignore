@@ -4,6 +4,6 @@ tests/
 .git/
 .vs/
 .vscode/
-media/
+**/media/
 *.user
 *.suo

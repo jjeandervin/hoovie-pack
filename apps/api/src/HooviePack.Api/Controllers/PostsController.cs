@@ -18,12 +18,10 @@ public sealed class PostsController(IPostService postService) : ControllerBase
         Ok(await postService.GetAsync(User, postId, cancellationToken));
 
     [HttpPut("{postId:guid}")]
-    [Consumes("multipart/form-data")]
-    [RequestSizeLimit(42 * 1024 * 1024)]
     [ProducesResponseType<PostResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<PostResponse>> Update(
         Guid postId,
-        [FromForm] UpdatePostRequest request,
+        [FromBody] UpdatePostRequest request,
         CancellationToken cancellationToken) =>
         Ok(await postService.UpdateAsync(User, postId, request, cancellationToken));
 

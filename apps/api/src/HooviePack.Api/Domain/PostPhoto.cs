@@ -4,7 +4,8 @@ public sealed class PostPhoto : Entity
 {
     public Guid PostId { get; set; }
     public Post Post { get; set; } = null!;
-    public required string StoragePath { get; set; }
+    public Guid? FileId { get; set; }
+    public string? StoragePath { get; set; }
     public required string OriginalFileName { get; set; }
     public required string ContentType { get; set; }
     public int Width { get; set; }

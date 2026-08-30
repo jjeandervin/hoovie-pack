@@ -26,12 +26,10 @@ public sealed class DogsController(IDogService dogService) : ControllerBase
         Ok(await dogService.GetAsync(User, familyId, dogId, cancellationToken));
 
     [HttpPost]
-    [Consumes("multipart/form-data")]
-    [RequestSizeLimit(11 * 1024 * 1024)]
     [ProducesResponseType<DogResponse>(StatusCodes.Status201Created)]
     public async Task<ActionResult<DogResponse>> Create(
         Guid familyId,
-        [FromForm] UpsertDogRequest request,
+        [FromBody] UpsertDogRequest request,
         CancellationToken cancellationToken)
     {
         var dog = await dogService.CreateAsync(User, familyId, request, cancellationToken);
@@ -39,13 +37,11 @@ public sealed class DogsController(IDogService dogService) : ControllerBase
     }
 
     [HttpPut("{dogId:guid}")]
-    [Consumes("multipart/form-data")]
-    [RequestSizeLimit(11 * 1024 * 1024)]
     [ProducesResponseType<DogResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<DogResponse>> Update(
         Guid familyId,
         Guid dogId,
-        [FromForm] UpsertDogRequest request,
+        [FromBody] UpsertDogRequest request,
         CancellationToken cancellationToken) =>
         Ok(await dogService.UpdateAsync(User, familyId, dogId, request, cancellationToken));
 

@@ -5,9 +5,11 @@ WORKDIR /src
 COPY dotnet-tools.json ./
 RUN dotnet tool restore
 
+COPY src/HooviePack.Files.Domain/HooviePack.Files.Domain.csproj src/HooviePack.Files.Domain/
 COPY src/HooviePack.Api/HooviePack.Api.csproj src/HooviePack.Api/
 RUN dotnet restore src/HooviePack.Api/HooviePack.Api.csproj
 
+COPY src/HooviePack.Files.Domain/ src/HooviePack.Files.Domain/
 COPY src/HooviePack.Api/ src/HooviePack.Api/
 RUN dotnet build src/HooviePack.Api/HooviePack.Api.csproj \
     --configuration "$BUILD_CONFIGURATION" \

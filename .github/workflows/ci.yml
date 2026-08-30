@@ -45,22 +45,60 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Validate explicit migration service
+      - name: Validate internal File Service and explicit migrations
         shell: bash
         run: |
           compose=(docker compose --env-file .env.example --file compose.yaml --file compose.prod.yaml)
           "${compose[@]}" config --quiet
 
-          if "${compose[@]}" config --services | grep --fixed-strings --line-regexp db-migrations; then
-            echo "db-migrations must not be part of the default production service set." >&2
+          for migration in db-migrations files-db-migrations; do
+            if "${compose[@]}" config --services | grep --fixed-strings --line-regexp "$migration"; then
+              echo "$migration must not be part of the default production service set." >&2
+              exit 1
+            fi
+
+            "${compose[@]}" --profile migration config --services \
+              | grep --quiet --fixed-strings --line-regexp "$migration"
+          done
+
+          if "${compose[@]}" config --services | grep --fixed-strings --line-regexp legacy-media-migration; then
+            echo "legacy-media-migration must never be part of the default production service set." >&2
             exit 1
           fi
+          "${compose[@]}" --profile media-migration config --services \
+            | grep --quiet --fixed-strings --line-regexp legacy-media-migration
+          media_config_json="$("${compose[@]}" --profile media-migration config --format json)"
+          jq --exit-status '
+            .services["legacy-media-migration"].restart == "no"
+            and any(
+              .services["legacy-media-migration"].volumes[];
+              .target == "/legacy-media" and .read_only == true
+            )
+          ' <<<"$media_config_json"
 
-          "${compose[@]}" --profile migration config --services \
-            | grep --quiet --fixed-strings --line-regexp db-migrations
+          check_line="$(grep --line-number --fixed-strings 'legacy-media-migration --check' scripts/deploy-prod.sh | cut --delimiter=: --fields=1)"
+          up_line="$(grep --line-number --fixed-strings 'up --detach --no-build' scripts/deploy-prod.sh | cut --delimiter=: --fields=1)"
+          test -n "$check_line"
+          test -n "$up_line"
+          test "$check_line" -lt "$up_line"
 
-          test "$("${compose[@]}" config --format json \
-            | jq --raw-output '.services.api.environment.Database__ApplyMigrations')" = "false"
+          config_json="$("${compose[@]}" config --format json)"
+          test "$(jq --raw-output '.services.api.environment.Database__ApplyMigrations' <<<"$config_json")" = "false"
+          test "$(jq --raw-output '.services["files-api"].environment.Database__ApplyMigrations' <<<"$config_json")" = "false"
+          test "$(jq --raw-output '.services.api.environment.FileService__BaseUrl' <<<"$config_json")" = "http://files-api:8080"
+
+          jq --exit-status '
+            (.services["files-api"].ports | length) == 0
+            and (.services["files-api"].networks | has("hooviepack"))
+            and ((.services["files-api"].networks | has("jeandervin")) | not)
+            and (.services["files-api"].healthcheck != null)
+            and (.services.api.depends_on["files-api"].condition == "service_healthy")
+            and (.services.api.environment.MediaStorage__MaxImageBytes == .services["files-api"].environment.FileStorage__MaxFileBytes)
+            and (.services["files-api"].environment.AWS_ACCESS_KEY_ID != null)
+            and (.services["files-api"].environment.AWS_SECRET_ACCESS_KEY != null)
+            and ((.services.api.environment | has("AWS_ACCESS_KEY_ID")) | not)
+            and ((.services.web.environment | has("AWS_ACCESS_KEY_ID")) | not)
+          ' <<<"$config_json"
 
   api:
     name: API build, tests, and dependency audit
@@ -153,8 +191,18 @@ jobs:
         run: npm run build:production
 
   migration-container:
-    name: Migration container
+    name: Migration container (${{ matrix.name }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: application
+            dockerfile: apps/api/Dockerfile.migrations
+            image: hooviepack-db-migrations:ci
+          - name: files
+            dockerfile: apps/api/Dockerfile.files.migrations
+            image: hooviepack-files-db-migrations:ci
     services:
       postgres:
         image: postgres:17-alpine
@@ -179,8 +227,8 @@ jobs:
         run: >-
           docker build
           --pull
-          --file apps/api/Dockerfile.migrations
-          --tag hooviepack-db-migrations:ci
+          --file "${{ matrix.dockerfile }}"
+          --tag "${{ matrix.image }}"
           apps/api
 
       - name: Apply migrations and verify idempotency
@@ -191,7 +239,7 @@ jobs:
             docker run --rm --network host \
               --env DOTNET_ENVIRONMENT=Production \
               --env "ConnectionStrings__DefaultConnection=$connection" \
-              hooviepack-db-migrations:ci
+              "${{ matrix.image }}"
           done
 
       - name: Verify migration failures are non-zero
@@ -200,7 +248,7 @@ jobs:
           if docker run --rm --network host \
             --env DOTNET_ENVIRONMENT=Production \
             --env 'ConnectionStrings__DefaultConnection=Host=127.0.0.1;Port=1;Database=invalid;Username=invalid;Password=invalid;Timeout=2;Command Timeout=2' \
-            hooviepack-db-migrations:ci; then
+            "${{ matrix.image }}"; then
             echo "Migration image unexpectedly succeeded with an unreachable database." >&2
             exit 1
           fi
@@ -219,7 +267,7 @@ jobs:
           --ignore-unfixed
           --exit-code 1
           --no-progress
-          hooviepack-db-migrations:ci
+          "${{ matrix.image }}"
 
   container-scan:
     name: Container scan (${{ matrix.name }})
@@ -232,6 +280,14 @@ jobs:
             context: apps/api
             dockerfile: apps/api/Dockerfile
             image: hooviepack-api:ci
+          - name: files-api
+            context: apps/api
+            dockerfile: apps/api/Dockerfile.files
+            image: hooviepack-files-api:ci
+          - name: legacy-media-migration
+            context: apps/api
+            dockerfile: apps/api/Dockerfile.file-migration
+            image: hooviepack-file-migration:ci
           - name: web
             context: apps/web
             dockerfile: apps/web/Dockerfile
