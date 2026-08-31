@@ -145,7 +145,7 @@ services:
       - hooviepack
 
   nginx:
-    image: ${NGINX_IMAGE:-nginx:1.28-alpine}
+    image: ${NGINX_IMAGE:-nginx:1.31-alpine}
     profiles: ["production"]
     volumes:
       - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
