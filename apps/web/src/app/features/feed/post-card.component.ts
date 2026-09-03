@@ -10,10 +10,10 @@ import { ToastService } from '../../core/toast.service';
 import { AvatarComponent } from '../../shared/avatar.component';
 import { AuthImageDirective } from '../../shared/auth-image.directive';
 
-const REACTIONS: ReadonlyArray<{ type: ReactionType; label: string; icon: string }> = [
-  { type: 'paw', label: 'Paw', icon: '●' },
-  { type: 'heart', label: 'Love', icon: '♥' },
-  { type: 'bone', label: 'Treat', icon: '⌁' }
+const REACTIONS: ReadonlyArray<{ type: ReactionType; label: string; iconUrl: string }> = [
+  { type: 'paw', label: 'Paw', iconUrl: '/assets/paw.png' },
+  { type: 'heart', label: 'Love', iconUrl: '/assets/heart.png' },
+  { type: 'bone', label: 'Treat', iconUrl: '/assets/treat.png' }
 ];
 
 @Component({

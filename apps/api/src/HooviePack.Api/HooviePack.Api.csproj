@@ -16,8 +16,8 @@
   <Target Name="StartDebugInfrastructure"
           BeforeTargets="Build"
           Condition="'$(Configuration)' == 'Debug' and '$(StartDebugDependencies)' == 'true' and '$(DesignTimeBuild)' != 'true'">
-    <Message Importance="high" Text="Ensuring HooviePack PostgreSQL and Keycloak debug dependencies are healthy..." />
-    <Exec Command="docker compose --env-file &quot;$(HooviePackRepoRoot)/.env&quot; --file &quot;$(HooviePackRepoRoot)/compose.yaml&quot; up --detach --wait postgres keycloak-db keycloak" />
+    <Message Importance="high" Text="Ensuring HooviePack PostgreSQL, Keycloak, and File API debug dependencies are healthy..." />
+    <Exec Command="docker compose --env-file &quot;$(HooviePackRepoRoot)/.env&quot; --file &quot;$(HooviePackRepoRoot)/compose.yaml&quot; up --detach --build --wait postgres keycloak-db keycloak files-api" />
   </Target>
 
   <ItemGroup>

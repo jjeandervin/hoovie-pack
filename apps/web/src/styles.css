@@ -264,8 +264,8 @@ button:disabled, input:disabled, select:disabled, textarea:disabled { cursor: no
 .reaction-bar button { display: flex; min-height: 39px; align-items: center; justify-content: center; gap: 5px; border: 0; border-radius: 9px; background: transparent; color: var(--muted); font-size: .76rem; font-weight: 700; cursor: pointer; }
 .reaction-bar button:hover { background: var(--cream); color: var(--sage-800); }
 .reaction-bar button.is-active { background: var(--sage-100); color: var(--sage-800); }
-.reaction-icon { font-size: 1rem; }.reaction-icon--paw { color: var(--terracotta-600); }.reaction-icon--heart { color: #b74c50; }.reaction-icon--bone { color: #a87825; }
-.reaction-bar small { font-size: .66rem; }
+.reaction-icon { display: block; width: 22px; height: 22px; flex: 0 0 22px; object-fit: contain; }
+.reaction-bar small { display: inline-flex; height: 22px; align-items: center; font-size: .66rem; line-height: 1; }
 .comments { border-top: 1px solid var(--line); padding: 14px 20px 18px; background: #fbf8f1; }
 .comment-list { display: grid; gap: 12px; margin: 0 0 14px; padding: 0; list-style: none; }
 .comment-list li { display: grid; grid-template-columns: auto 1fr auto; gap: 9px; align-items: start; }

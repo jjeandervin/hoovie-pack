@@ -48,13 +48,13 @@
         [attr.aria-pressed]="reactionState(reaction.type).reactedByMe"
         [attr.aria-label]="reaction.label + ' reaction, ' + reactionState(reaction.type).count"
       >
-        <span [class]="'reaction-icon reaction-icon--' + reaction.type" aria-hidden="true">{{ reaction.icon }}</span>
+        <img class="reaction-icon" [src]="reaction.iconUrl" alt="" aria-hidden="true">
         <span>{{ reaction.label }}</span>
         @if (reactionState(reaction.type).count) { <small>{{ reactionState(reaction.type).count }}</small> }
       </button>
     }
     <button type="button" class="comment-toggle" [class.is-active]="commentsOpen()" (click)="commentsOpen.set(!commentsOpen())" [attr.aria-expanded]="commentsOpen()">
-      <span aria-hidden="true">□</span><span>Comment</span>
+      <img class="reaction-icon" src="/assets/comment.png" alt="" aria-hidden="true"><span>Comment</span>
     </button>
   </div>
 

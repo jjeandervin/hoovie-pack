@@ -104,14 +104,13 @@ The API Docker image is published in Release mode, so use the local workflow bel
 
 ### Local API debugging
 
-Stop the containerized web and API services if they are running, but keep the loopback-published File Service and its dependencies healthy before running the API from the .NET SDK:
+Stop the containerized web and main API services if they are running before running the main API from the .NET SDK:
 
 ```powershell
 docker compose stop web api
-docker compose up --detach --wait postgres keycloak-db keycloak files-api
 ```
 
-Every API Debug build automatically ensures PostgreSQL and Keycloak are healthy. Start `files-api` explicitly as shown above because the host-run API cannot use Docker DNS; it calls the loopback port instead. Release builds do not start containers. To explicitly skip automatic infrastructure startup—for example in CI—build with `-p:StartDebugDependencies=false`.
+Every main API Debug build automatically builds and starts PostgreSQL, Keycloak, and `files-api`, then waits for them to become healthy. The host-run API calls the File Service through its loopback port at `http://localhost:5001`; it does not use Docker DNS. Release builds do not start containers. To explicitly skip automatic dependency startup—for example in CI—build with `-p:StartDebugDependencies=false`.
 
 The API project has a `UserSecretsId`. On each development workstation, populate its machine-local secret store once from the ignored `.env` file:
 
