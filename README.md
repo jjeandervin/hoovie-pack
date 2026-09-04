@@ -221,6 +221,7 @@ The imported `hooviepack` realm contains:
 - `hooviepack-api`, the bearer-token audience
 - an audience mapper that adds `hooviepack-api` to web access tokens
 - local and production redirect/origin entries derived from `LOCAL_APP_ORIGIN` and `APP_ORIGIN`
+- Keycloak self-registration, initiated from the public landing page with the standard OIDC `prompt=create` parameter
 - brute-force protection and two temporary-password demo users
 
 The browser and `Authentication__Authority` use `${KEYCLOAK_PUBLIC_URL}/realms/hooviepack`. `Authentication__ValidIssuer` independently pins tokens to that public issuer, which must be HTTPS in production. `Authentication__MetadataAddress` may use `http://keycloak:8080` on the isolated Compose network so the API can fetch discovery/JWKS without routing out through the public proxy. Production keeps `Authentication__RequireHttpsMetadata=true`; the API narrowly exempts only loopback and the Docker-internal `keycloak` hostname and rejects arbitrary external HTTP metadata URLs. Signature, public issuer, audience, and lifetime validation remain enabled.
@@ -232,6 +233,22 @@ docker compose stop keycloak
 docker compose run --rm keycloak import --file /opt/keycloak/data/import/hooviepack-realm.json --override true
 docker compose up -d keycloak
 ```
+
+After registration, Keycloak signs the new user in and returns them to HooviePack's existing OIDC callback, which sends them through onboarding. The landing page is unavailable to an already signed-in user; they must sign out before creating a different account.
+
+Family invite links point to `/onboarding?code=...`. For a new visitor, opening one starts Keycloak registration and preserves the complete onboarding URL through the OIDC round trip. After account creation, HooviePack opens the join-family step with the invite code already filled in. A visitor who already has a valid HooviePack session goes directly to that prefilled step.
+
+### Keycloak theme
+
+The `hooviepack` login theme in `infra/keycloak/themes/hooviepack` extends Keycloak's maintained `keycloak.v2` templates and customizes their CSS, English messages, favicon, and footer. It applies to sign-in, registration, password-reset, verification, and authentication error pages. Compose mounts the themes directory read-only, and fresh realm imports select `hooviepack` as the login theme.
+
+For an existing realm, select **hooviepack** under **Realm settings → Themes → Login theme**, or update the realm through the Keycloak Admin API. Recreate Keycloak after changing the mounted theme files so cached resources are refreshed:
+
+```bash
+docker compose up -d --force-recreate keycloak
+```
+
+Keep the parent templates inherited rather than copying them. If a future customization overrides a FreeMarker template, compare that override with the bundled version whenever Keycloak is upgraded.
 
 Export/back up the realm before overriding a non-development instance. The bootstrap administrator is likewise created only when the Keycloak database is empty. Removing users from the import JSON does **not** delete or disable users in an existing Keycloak database. Operators must manually disable or delete any existing `demo.owner` and `demo.member` accounts in production.
 

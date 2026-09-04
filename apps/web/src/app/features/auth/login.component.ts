@@ -20,12 +20,20 @@ export class LoginComponent implements OnInit {
   }
 
   signIn(): void {
+    this.startAuthFlow(() => this.auth.login('/feed'));
+  }
+
+  register(): void {
+    this.startAuthFlow(() => this.auth.register('/onboarding'));
+  }
+
+  private startAuthFlow(start: () => void): void {
     if (this.auth.authError()) {
       void this.auth.retryInitialization().then(() => {
-        if (!this.auth.authError()) this.auth.login('/feed');
+        if (!this.auth.authError()) start();
       });
       return;
     }
-    this.auth.login('/feed');
+    start();
   }
 }

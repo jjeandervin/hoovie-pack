@@ -34,10 +34,15 @@
         </div>
       }
 
-      <button type="button" class="button button--large button--full" (click)="signIn()" [disabled]="!auth.initialized()">
-        <span class="button-paw" aria-hidden="true">●</span>
-        {{ auth.initialized() ? 'Sign in to HooviePack' : 'Preparing secure sign-in…' }}
-      </button>
+      <div class="auth-actions">
+        <button type="button" class="button button--large button--full" (click)="signIn()" [disabled]="!auth.initialized()">
+          <span class="button-paw" aria-hidden="true">●</span>
+          {{ auth.initialized() ? 'Sign in to HooviePack' : 'Preparing secure sign-in…' }}
+        </button>
+        <button type="button" class="button button--large button--full button--secondary" (click)="register()" [disabled]="!auth.initialized()">
+          Create your account
+        </button>
+      </div>
       <p class="auth-security"><span aria-hidden="true">◇</span> Protected by secure OpenID Connect sign-in</p>
 
       <div class="auth-divider"><span>Made for your inner circle</span></div>

@@ -1,0 +1,374 @@
+/* Versioned filename ensures browsers fetch visual fixes despite Keycloak's long-lived asset cache. */
+:root {
+  color-scheme: light;
+  --hp-cream: #f6f1e7;
+  --hp-paper: #fffdf8;
+  --hp-white: #ffffff;
+  --hp-sage-900: #26382a;
+  --hp-sage-800: #344b37;
+  --hp-sage-700: #49664a;
+  --hp-sage-200: #c9d5c5;
+  --hp-sage-100: #e4ebe0;
+  --hp-terracotta: #c35d3c;
+  --hp-terracotta-dark: #a94b31;
+  --hp-mustard-soft: #f4e4ad;
+  --hp-bark: #3d3128;
+  --hp-ink: #292a25;
+  --hp-muted: #6d6b61;
+  --hp-line: #dfd8ca;
+  --hp-danger: #a43d32;
+  --hp-focus: #238b83;
+  --hp-font: "Avenir Next", Avenir, "Segoe UI", system-ui, -apple-system, sans-serif;
+  --pf-v5-global--primary-color--100: var(--hp-sage-700);
+  --pf-v5-global--primary-color--200: var(--hp-sage-800);
+}
+
+html.login-pf,
+html.login-pf body {
+  min-width: 320px;
+  min-height: 100%;
+}
+
+.login-pf body {
+  margin: 0;
+  background: var(--hp-paper);
+  color: var(--hp-ink);
+  font-family: var(--hp-font);
+  font-synthesis: none;
+}
+
+.pf-v5-c-login {
+  min-height: 100vh;
+  padding: 0;
+  background: var(--hp-paper);
+}
+
+.pf-v5-c-login__container {
+  display: grid;
+  width: 100%;
+  max-width: none;
+  min-height: 100vh;
+  grid-template-areas: "header main";
+  grid-template-columns: minmax(0, 1.12fr) minmax(420px, .88fr);
+  grid-template-rows: 1fr;
+  padding: 0;
+}
+
+#kc-header {
+  position: relative;
+  display: flex;
+  min-height: 100vh;
+  align-items: flex-start;
+  flex-direction: column;
+  grid-area: header;
+  overflow: hidden;
+  margin: 0;
+  padding: clamp(32px, 5vw, 68px);
+  background:
+    radial-gradient(circle at 81% 13%, rgb(255 255 255 / 7%) 0 5%, transparent 5.2%),
+    radial-gradient(circle at 12% 68%, rgb(255 255 255 / 4%) 0 13%, transparent 13.2%),
+    linear-gradient(145deg, transparent 55%, rgb(34 55 39 / 35%)),
+    var(--hp-sage-800);
+  color: var(--hp-white);
+}
+
+#kc-header::before {
+  position: absolute;
+  right: -8%;
+  bottom: -24%;
+  width: 78%;
+  height: 58%;
+  border-radius: 50% 50% 0 0;
+  background: #6b845f;
+  box-shadow: -19vw 7vw 0 #79906e;
+  content: "";
+  transform: rotate(-4deg);
+}
+
+#kc-header::after {
+  z-index: 1;
+  max-width: 680px;
+  margin: auto 0 27vh;
+  color: var(--hp-white);
+  content: "Every little moment\A belongs with the pack.";
+  font-size: clamp(2.8rem, 6vw, 5.6rem);
+  font-weight: 800;
+  letter-spacing: -.065em;
+  line-height: 1.04;
+  white-space: pre-line;
+}
+
+#kc-header-wrapper {
+  z-index: 2;
+  display: grid;
+  align-items: center;
+  grid-template-columns: 54px auto;
+  column-gap: 12px;
+  color: var(--hp-white);
+  font-size: 1.18rem;
+  font-weight: 800;
+  letter-spacing: -.035em;
+  line-height: 1;
+  text-transform: none;
+}
+
+#kc-header-wrapper::before {
+  width: 54px;
+  height: 54px;
+  grid-row: 1 / span 2;
+  background: url("../img/corgi-butt.svg") center / contain no-repeat;
+  content: "";
+  filter: drop-shadow(0 4px 5px rgb(24 33 25 / 24%));
+}
+
+#kc-header-wrapper::after {
+  margin-top: 7px;
+  color: #e4ede1;
+  content: "Stay close. Share joy.";
+  font-size: .7rem;
+  font-weight: 500;
+  grid-column: 2;
+  letter-spacing: .02em;
+}
+
+.pf-v5-c-login__main {
+  width: min(460px, calc(100% - 52px));
+  grid-area: main;
+  align-self: center;
+  justify-self: center;
+  margin: 42px 0;
+  overflow: hidden;
+  border: 1px solid rgb(223 216 202 / 72%);
+  border-radius: 26px;
+  background: var(--hp-white);
+  box-shadow: 0 26px 70px rgb(30 42 31 / 16%);
+}
+
+.pf-v5-c-login__main-header {
+  border-top: 0;
+  padding: 34px 36px 12px;
+}
+
+.pf-v5-c-login__main-body {
+  padding: 18px 36px 34px;
+}
+
+.pf-v5-c-login__main-footer {
+  padding-inline: 36px;
+}
+
+#kc-page-title {
+  margin: 0;
+  color: var(--hp-sage-900);
+  font-family: var(--hp-font);
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  font-weight: 800;
+  letter-spacing: -.045em;
+  line-height: 1.08;
+}
+
+.subtitle,
+.instruction,
+#kc-info-wrapper,
+.pf-v5-c-form__helper-text,
+.pf-v5-c-login__main-footer-band-item {
+  color: var(--hp-muted);
+}
+
+.pf-v5-c-form {
+  gap: 18px;
+}
+
+.pf-v5-c-form__label-text {
+  color: var(--hp-bark);
+  font-weight: 700;
+}
+
+.pf-v5-c-form__label-required {
+  color: var(--hp-terracotta-dark);
+}
+
+.pf-v5-c-form-control {
+  --pf-v5-c-form-control--hover--after--BorderBottomColor: var(--hp-sage-700);
+  --pf-v5-c-form-control--focus--after--BorderBottomColor: var(--hp-sage-700);
+  --pf-v5-c-form-control--m-expanded--after--BorderBottomColor: var(--hp-sage-700);
+}
+
+span.pf-v5-c-form-control {
+  --pf-v5-c-form-control--BackgroundColor: var(--hp-white);
+  --pf-v5-c-form-control--Color: var(--hp-ink);
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--hp-white) !important;
+  color: var(--hp-ink) !important;
+  color-scheme: light;
+}
+
+input.pf-v5-c-form-control,
+textarea.pf-v5-c-form-control,
+select.pf-v5-c-form-control {
+  min-height: 47px;
+  border: 1px solid var(--hp-line);
+  border-radius: 12px;
+  background: var(--hp-white);
+  color: var(--hp-ink);
+  box-shadow: none;
+}
+
+span.pf-v5-c-form-control > input,
+.pf-v5-c-input-group input[type="password"] {
+  width: 100%;
+  min-height: 45px;
+  border: 0;
+  padding: 11px 13px;
+  background: var(--hp-white) !important;
+  color: var(--hp-ink) !important;
+  color-scheme: light;
+  outline: 0;
+}
+
+span.pf-v5-c-form-control > input::placeholder,
+.pf-v5-c-input-group input[type="password"]::placeholder {
+  color: #999488;
+}
+
+input.pf-v5-c-form-control:focus,
+textarea.pf-v5-c-form-control:focus,
+select.pf-v5-c-form-control:focus {
+  border-color: var(--hp-focus);
+  box-shadow: 0 0 0 3px rgb(35 139 131 / 14%);
+  outline: 0;
+}
+
+.pf-v5-c-input-group .pf-v5-c-button.pf-m-control {
+  border-color: var(--hp-line);
+  border-radius: 0 12px 12px 0;
+  background: var(--hp-white) !important;
+  color: var(--hp-sage-800);
+}
+
+.pf-v5-c-input-group .pf-v5-c-button.pf-m-control:hover {
+  background: var(--hp-white) !important;
+  color: var(--hp-sage-700);
+}
+
+.pf-v5-c-button.pf-m-primary,
+input.pf-v5-c-button.pf-m-primary {
+  min-height: 50px;
+  border: 1px solid var(--hp-sage-700);
+  border-radius: 999px;
+  background: var(--hp-sage-700);
+  color: var(--hp-white);
+  font-weight: 750;
+  box-shadow: 0 5px 13px rgb(73 102 74 / 18%);
+  transition: background .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+
+.pf-v5-c-button.pf-m-primary:hover,
+input.pf-v5-c-button.pf-m-primary:hover {
+  background: var(--hp-sage-800);
+  box-shadow: 0 8px 18px rgb(73 102 74 / 24%);
+  transform: translateY(-1px);
+}
+
+a {
+  color: var(--hp-sage-700);
+  font-weight: 700;
+  text-decoration-color: rgb(73 102 74 / 38%);
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  color: var(--hp-terracotta-dark);
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--hp-focus);
+  outline-offset: 3px;
+}
+
+.pf-v5-c-alert.pf-m-danger,
+.alert-error {
+  border-color: #edbdb2;
+  border-radius: 13px;
+  background: #f9e4df;
+  color: #733126;
+}
+
+.pf-v5-c-login__main-footer-band {
+  border-top-color: var(--hp-line);
+}
+
+.hp-auth-footer {
+  margin: 0;
+  padding: 2px 0 24px;
+  color: #918d80;
+  font-size: .76rem;
+  text-align: center;
+}
+
+@media (max-width: 767px) {
+  .pf-v5-c-login__container {
+    display: block;
+    min-height: 100vh;
+  }
+
+  #kc-header {
+    min-height: 285px;
+    padding: 24px 22px 62px;
+  }
+
+  #kc-header::before {
+    right: -18%;
+    bottom: -42%;
+    width: 85%;
+  }
+
+  #kc-header::after {
+    width: 78%;
+    margin: 62px 0 0;
+    font-size: clamp(2.15rem, 11vw, 3.35rem);
+  }
+
+  #kc-header-wrapper {
+    grid-template-columns: 47px auto;
+  }
+
+  #kc-header-wrapper::before {
+    width: 47px;
+    height: 47px;
+  }
+
+  .pf-v5-c-login__main {
+    position: relative;
+    z-index: 3;
+    width: calc(100% - 28px);
+    margin: -28px auto 28px;
+    border-radius: 24px;
+  }
+
+  .pf-v5-c-login__main-header {
+    padding: 31px 24px 10px;
+  }
+
+  .pf-v5-c-login__main-body {
+    padding: 16px 24px 30px;
+  }
+
+  .pf-v5-c-login__main-footer {
+    padding-inline: 24px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+  }
+}

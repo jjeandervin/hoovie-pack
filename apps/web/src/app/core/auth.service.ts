@@ -76,6 +76,13 @@ export class AuthService {
     this.oauth.initCodeFlow();
   }
 
+  register(returnUrl = '/onboarding'): void {
+    if (this.hasValidToken()) return;
+
+    sessionStorage.setItem(RETURN_URL_KEY, this.safeReturnUrl(returnUrl));
+    this.oauth.initCodeFlow('', { prompt: 'create' });
+  }
+
   logout(): void {
     sessionStorage.removeItem(RETURN_URL_KEY);
     this.oauth.logOut();

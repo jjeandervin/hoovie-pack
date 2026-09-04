@@ -126,6 +126,7 @@ button:disabled, input:disabled, select:disabled, textarea:disabled { cursor: no
 .auth-card h2 { margin-bottom: 12px; font-size: clamp(2.2rem, 4vw, 3.15rem); }
 .auth-card__intro { margin-bottom: 28px; color: var(--muted); font-size: 1.02rem; }
 .auth-card .alert { margin-bottom: 18px; }
+.auth-actions { display: grid; gap: 11px; }
 .button-paw { color: var(--mustard-soft); }
 .auth-security { display: flex; align-items: center; justify-content: center; gap: 7px; margin: 13px 0 28px; color: var(--muted); font-size: .74rem; }
 .auth-divider { display: flex; align-items: center; gap: 12px; margin: 10px 0 21px; color: var(--muted-light); font-size: .72rem; text-transform: uppercase; letter-spacing: .09em; }

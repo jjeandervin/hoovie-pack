@@ -1,9 +1,10 @@
 import { Routes } from '@angular/router';
-import { authGuard } from './core/auth.guard';
+import { authGuard, guestGuard } from './core/auth.guard';
 
 export const routes: Routes = [
   {
     path: 'login',
+    canActivate: [guestGuard],
     title: 'Welcome · HooviePack',
     loadComponent: () => import('./features/auth/login.component').then((m) => m.LoginComponent)
   },

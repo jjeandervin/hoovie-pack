@@ -23,6 +23,8 @@ import {
 } from './models';
 import { uploadToPresignedUrl } from './presigned-upload';
 import { RuntimeConfigService } from './runtime-config.service';
+import { mapMembershipRole } from './role-mapping';
+import type { ApiMembershipRole } from './role-mapping';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
@@ -212,12 +214,11 @@ export class ApiService {
   }
 }
 
-type ApiRole = MembershipRole | 0 | 1 | 2;
 type ApiReactionType = ReactionType | 'Paw' | 'Heart' | 'Bone' | 0 | 1 | 2;
 
 interface ApiUserSummary { id: string; displayName: string; avatarUrl?: string | null; bio?: string | null; }
-interface ApiFamily { id: string; name: string; slug?: string; description?: string | null; role: ApiRole; memberCount?: number; createdAt?: string; }
-interface ApiMember { membershipId: string; userId: string; displayName: string; avatarUrl?: string | null; bio?: string | null; role: ApiRole; joinedAt?: string; }
+interface ApiFamily { id: string; name: string; slug?: string; description?: string | null; role: ApiMembershipRole; memberCount?: number; createdAt?: string; }
+interface ApiMember { membershipId: string; userId: string; displayName: string; avatarUrl?: string | null; bio?: string | null; role: ApiMembershipRole; joinedAt?: string; }
 interface ApiInvite { id: string; codeHint: string; createdAt: string; expiresAt: string; inviteCode?: string | null; }
 interface ApiDog { id: string; familyId: string; name: string; photoUrl?: string | null; breed?: string | null; birthday?: string | null; approximateAgeYears?: number | null; bio?: string | null; favoriteThing?: string | null; ownerMembershipId?: string | null; owner?: ApiUserSummary | null; createdAt?: string; canManage?: boolean; }
 interface ApiPostPhoto { id: string; url: string; originalFileName?: string; contentType?: string; width?: number; height?: number; sortOrder?: number; }
@@ -239,18 +240,12 @@ function optionalNumber(value?: string): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function mapRole(role: ApiRole): MembershipRole {
-  if (role === 0 || role === 'Owner') return 'Owner';
-  if (role === 1 || role === 'Admin') return 'Admin';
-  return 'Member';
-}
-
 function mapFamily(family: ApiFamily): FamilySummary {
-  return { id: family.id, name: family.name, slug: family.slug, description: family.description, role: mapRole(family.role), memberCount: family.memberCount, createdAt: family.createdAt };
+  return { id: family.id, name: family.name, slug: family.slug, description: family.description, role: mapMembershipRole(family.role), memberCount: family.memberCount, createdAt: family.createdAt };
 }
 
 function mapMember(member: ApiMember): FamilyMember {
-  return { id: member.membershipId, userId: member.userId, displayName: member.displayName, avatarUrl: member.avatarUrl, bio: member.bio, role: mapRole(member.role), joinedAt: member.joinedAt };
+  return { id: member.membershipId, userId: member.userId, displayName: member.displayName, avatarUrl: member.avatarUrl, bio: member.bio, role: mapMembershipRole(member.role), joinedAt: member.joinedAt };
 }
 
 function mapDog(dog: ApiDog): DogProfile {
