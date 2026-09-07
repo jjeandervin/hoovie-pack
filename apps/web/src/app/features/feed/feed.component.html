@@ -11,7 +11,9 @@
   <a class="quick-composer" routerLink="/posts/new">
     <hp-avatar [src]="user.profile()?.avatarUrl" [name]="user.profile()?.displayName || 'You'" [size]="44" />
     <span>Share an update with your family…</span>
-    <b aria-hidden="true">▧</b>
+    <span class="quick-composer__icon" aria-hidden="true">
+      <img src="/assets/feed-post.png" alt="">
+    </span>
   </a>
 
   @if (loading()) {

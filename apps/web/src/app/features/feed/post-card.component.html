@@ -33,26 +33,28 @@
 
   @if (totalReactions() || commentCount()) {
     <div class="post-card__summary">
-      <span>@if (totalReactions()) { <b aria-hidden="true">♥</b> {{ totalReactions() }} {{ totalReactions() === 1 ? 'reaction' : 'reactions' }} }</span>
+      <span class="reaction-summary">@if (totalReactions()) { <img class="reaction-summary__icon" src="/assets/paw.png" alt="" aria-hidden="true"> {{ totalReactions() }} {{ totalReactions() === 1 ? 'reaction' : 'reactions' }} }</span>
       <button type="button" (click)="commentsOpen.set(!commentsOpen())">{{ commentCount() }} {{ commentCount() === 1 ? 'comment' : 'comments' }}</button>
     </div>
   }
 
   <div class="reaction-bar" aria-label="React to this post">
-    @for (reaction of reactionOptions; track reaction.type) {
-      <button
-        type="button"
-        [class.is-active]="reactionState(reaction.type).reactedByMe"
-        [disabled]="reactionBusy() === reaction.type"
-        (click)="toggleReaction(reaction.type)"
-        [attr.aria-pressed]="reactionState(reaction.type).reactedByMe"
-        [attr.aria-label]="reaction.label + ' reaction, ' + reactionState(reaction.type).count"
-      >
-        <img class="reaction-icon" [src]="reaction.iconUrl" alt="" aria-hidden="true">
-        <span>{{ reaction.label }}</span>
-        @if (reactionState(reaction.type).count) { <small>{{ reactionState(reaction.type).count }}</small> }
-      </button>
-    }
+    <div class="reaction-options">
+      @for (reaction of reactionOptions; track reaction.type) {
+        <button
+          type="button"
+          [class.is-active]="reactionState(reaction.type).reactedByMe"
+          [disabled]="reactionBusy() === reaction.type"
+          (click)="toggleReaction(reaction.type)"
+          [attr.aria-pressed]="reactionState(reaction.type).reactedByMe"
+          [attr.aria-label]="reaction.label + ' reaction, ' + reactionState(reaction.type).count"
+        >
+          <img class="reaction-icon" [src]="reaction.iconUrl" alt="" aria-hidden="true">
+          <span>{{ reaction.label }}</span>
+          @if (reactionState(reaction.type).count) { <small>{{ reactionState(reaction.type).count }}</small> }
+        </button>
+      }
+    </div>
     <button type="button" class="comment-toggle" [class.is-active]="commentsOpen()" (click)="commentsOpen.set(!commentsOpen())" [attr.aria-expanded]="commentsOpen()">
       <img class="reaction-icon" src="/assets/comment.png" alt="" aria-hidden="true"><span>Comment</span>
     </button>

@@ -236,7 +236,8 @@ button:disabled, input:disabled, select:disabled, textarea:disabled { cursor: no
 .refresh-button { border: 1px solid var(--line); background: var(--paper); box-shadow: var(--shadow-sm); font-size: 1.4rem; }
 .quick-composer { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; margin-bottom: 24px; border: 1px solid var(--line); border-radius: var(--radius-md); padding: 13px 15px; background: var(--paper); color: var(--muted); text-decoration: none; box-shadow: var(--shadow-sm); transition: border .16s, transform .16s; }
 .quick-composer:hover { border-color: var(--sage-200); transform: translateY(-1px); }
-.quick-composer b { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 11px; background: var(--sage-100); color: var(--sage-700); }
+.quick-composer__icon { position: relative; display: block; width: 52px; height: 52px; overflow: hidden; }
+.quick-composer__icon img { position: absolute; top: 50%; left: 50%; width: 84px; height: 84px; max-width: none; object-fit: contain; transform: translate(-50%, -50%); }
 .feed-list { display: grid; gap: 22px; }
 .post-card { overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--paper); box-shadow: var(--shadow-sm); }
 .post-card__header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 20px 10px; }
@@ -258,14 +259,17 @@ button:disabled, input:disabled, select:disabled, textarea:disabled { cursor: no
 .post-photo:hover img { transform: scale(1.018); }
 .post-photo > span { position: absolute; inset: 0; display: grid; place-items: center; background: rgb(38 56 42 / 68%); color: #fff; font-size: 2rem; font-weight: 800; }
 .post-card__summary { display: flex; min-height: 42px; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 20px; color: var(--muted); font-size: .75rem; }
-.post-card__summary b { color: var(--terracotta-600); }
+.reaction-summary { display: inline-flex; align-items: center; gap: 4px; }
+.reaction-summary__icon { display: block; width: 18px; height: 18px; object-fit: contain; }
 .post-card__summary button { border: 0; padding: 5px; background: transparent; color: var(--muted); cursor: pointer; }
 .post-card__summary button:hover { text-decoration: underline; }
-.reaction-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; margin: 0 15px; border-top: 1px solid var(--line); padding: 7px 0; }
-.reaction-bar button { display: flex; min-height: 39px; align-items: center; justify-content: center; gap: 5px; border: 0; border-radius: 9px; background: transparent; color: var(--muted); font-size: .76rem; font-weight: 700; cursor: pointer; }
-.reaction-bar button:hover { background: var(--cream); color: var(--sage-800); }
-.reaction-bar button.is-active { background: var(--sage-100); color: var(--sage-800); }
-.reaction-icon { display: block; width: 22px; height: 22px; flex: 0 0 22px; object-fit: contain; }
+.reaction-bar { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: 0 15px; border-top: 1px solid var(--line); padding: 7px 0; }
+.reaction-options { display: flex; align-items: center; gap: 8px; }
+.reaction-bar button { display: flex; min-height: 39px; align-items: center; justify-content: center; gap: 4px; border: 0; padding: 4px 6px; appearance: none; background: transparent; color: var(--muted); font-size: .76rem; font-weight: 700; cursor: pointer; }
+.reaction-bar button:hover { background: transparent; color: var(--sage-800); }
+.reaction-bar button.is-active { background: transparent; color: var(--sage-800); }
+.reaction-icon { display: block; width: 28px; height: 28px; flex: 0 0 28px; object-fit: contain; transition: transform .16s ease; }
+.reaction-bar button:hover .reaction-icon, .reaction-bar button.is-active .reaction-icon { transform: scale(1.08); }
 .reaction-bar small { display: inline-flex; height: 22px; align-items: center; font-size: .66rem; line-height: 1; }
 .comments { border-top: 1px solid var(--line); padding: 14px 20px 18px; background: #fbf8f1; }
 .comment-list { display: grid; gap: 12px; margin: 0 0 14px; padding: 0; list-style: none; }
@@ -386,7 +390,7 @@ button:disabled, input:disabled, select:disabled, textarea:disabled { cursor: no
   .auth-story__copy { width: 82%; }.auth-story__copy h1 { font-size: 2.25rem; }.feature-list { gap: 13px; }.feature-list small { font-size: .73rem; }
   .onboarding-page { padding-inline: 12px; }.onboarding-header { margin-bottom: 24px; padding-inline: 7px; }.onboarding-card { border-radius: 25px; padding: 25px 18px; }.step-dots { display: none; }
   .page-heading h1 { font-size: 1.9rem; }.page-heading > div > p:last-child { font-size: .83rem; }.page-heading--actions { display: grid; }.page-heading--actions > .button { width: fit-content; }
-  .post-photo { height: 290px; }.post-author .avatar { width: 40px !important; height: 40px !important; }.reaction-bar { grid-template-columns: repeat(4, 1fr); }.comment-bubble { max-width: calc(100vw - 110px); }
+  .post-photo { height: 290px; }.post-author .avatar { width: 40px !important; height: 40px !important; }.comment-bubble { max-width: calc(100vw - 110px); }
   .dog-grid { grid-template-columns: 1fr; }.dog-card { display: grid; grid-template-columns: 42% 58%; }.dog-card__photo { height: 100%; aspect-ratio: auto; }.dog-card__body > p:not(.eyebrow) { min-height: 0; -webkit-line-clamp: 2; }.dog-card__body .text-link { font-size: .72rem; }.filter-row { grid-template-columns: auto 1fr; }.filter-row small { display: none; }
   .dog-photo-section { grid-template-columns: 1fr; }.dog-photo-section > div:first-child { width: 180px; justify-self: center; }.dog-profile__photo { min-height: 430px; }.dog-profile__actions { align-items: stretch; flex-direction: column; }.dog-profile__actions .button { width: 100%; }.dog-detail-note > span { display: none; }
   .family-banner .role-badge { display: none; }.member-card { padding: 13px; }.inline-empty-card { align-items: flex-start; }.profile-hero { border-radius: 24px; }.profile-hero__pattern span { margin-inline: 15px; }
