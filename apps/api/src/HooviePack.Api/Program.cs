@@ -5,6 +5,7 @@ using HooviePack.Api.Application;
 using HooviePack.Api.Application.Services;
 using HooviePack.Api.Configuration;
 using HooviePack.Api.Infrastructure.Data;
+using HooviePack.Api.Infrastructure.DogApi;
 using HooviePack.Api.Infrastructure.Storage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -14,6 +15,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddDogipedia(builder.Configuration);
 
 builder.Services.Configure<MediaStorageOptions>(
     builder.Configuration.GetSection(MediaStorageOptions.SectionName));

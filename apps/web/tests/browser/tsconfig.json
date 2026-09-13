@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../../.angular/dogipedia-tests",
+    "rootDir": "../..",
+    "declaration": false,
+    "noEmit": false
+  },
+  "files": ["main.ts"],
+  "include": [],
+  "angularCompilerOptions": { "compilationMode": "full" }
+}

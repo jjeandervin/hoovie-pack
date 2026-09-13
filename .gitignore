@@ -18,6 +18,8 @@ Thumbs.db
 **/.angular/
 **/dist/
 **/coverage/
+**/test-results/
+**/playwright-report/
 **/.nx/
 
 # .NET outputs and local databases
@@ -47,4 +49,3 @@ infra/nginx/acme/**
 *.swp
 *.tar
 *.tar.gz
-

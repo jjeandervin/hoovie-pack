@@ -1,0 +1,83 @@
+<div id="breed-detail" class="page dogipedia-page" tabindex="-1" [attr.aria-busy]="loading()">
+  <a class="text-link breed-back" routerLink="/dogipedia" [queryParams]="backState"><svg class="back-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m10 5-7 7 7 7M3 12h18" /></svg> Back to Dogipedia</a>
+  @if (loading()) {
+    <hp-ui-state kind="loading" heading="Getting to know this breed…" message="Opening the breed story." />
+  } @else if (error() === 'missing') {
+    <hp-ui-state kind="empty" heading="This breed has wandered off" message="This breed isn’t in the guide right now. Explore another breed in Dogipedia." />
+  } @else if (error()) {
+    <hp-ui-state kind="error" heading="We lost the scent" message="We couldn’t load this breed. Please try again." actionLabel="Try again" (action)="reload()" />
+  } @else if (breed(); as b) {
+    <header class="page-heading"><div><p class="eyebrow">{{ b.group?.name || 'Meet the breed' }}</p><h1>{{ b.name }}</h1></div></header>
+    <div class="breed-intro">
+      <div class="breed-portrait"><hp-breed-gallery [images]="b.images" [name]="b.name" /></div>
+      <section class="breed-story" aria-label="About this breed">
+        <h2>A little about {{ b.name }}</h2><p>{{ b.description || 'This breed’s story has yet to be added to the guide.' }}</p>
+        <dl class="breed-facts">
+          <div><dt>Life expectancy</dt><dd>{{ range(b.life.minYears, b.life.maxYears, 'years') }}</dd></div>
+          @if (b.hypoallergenic !== null) { <div><dt>Hypoallergenic</dt><dd>{{ b.hypoallergenic ? 'Yes' : 'No' }}</dd></div> }
+          @if (b.traits.exerciseMinutes !== null) { <div><dt>Daily exercise</dt><dd>{{ b.traits.exerciseMinutes }} minutes</dd></div> }
+        </dl>
+      </section>
+    </div>
+    <div class="breed-sections">
+      <section class="breed-section"><p class="eyebrow">From nose to tail</p><h2>Size & lifespan</h2>
+        <dl class="breed-facts">
+          <div><dt>Male weight</dt><dd>{{ range(b.maleWeight.minKg, b.maleWeight.maxKg, 'lb', 2.2046226218) }}</dd></div>
+          <div><dt>Female weight</dt><dd>{{ range(b.femaleWeight.minKg, b.femaleWeight.maxKg, 'lb', 2.2046226218) }}</dd></div>
+          <div><dt>Male height</dt><dd>{{ range(b.maleHeight.minCm, b.maleHeight.maxCm, 'in', 1 / 2.54) }}</dd></div>
+          <div><dt>Female height</dt><dd>{{ range(b.femaleHeight.minCm, b.femaleHeight.maxCm, 'in', 1 / 2.54) }}</dd></div>
+          <div><dt>Life expectancy</dt><dd>{{ range(b.life.minYears, b.life.maxYears, 'years') }}</dd></div>
+        </dl>
+      </section>
+      <section class="breed-section"><p class="eyebrow">Where the story began</p><h2>Origin</h2>
+        <dl class="breed-facts">
+          <div><dt>Country</dt><dd>{{ b.origin.country || 'Not recorded' }}</dd></div>
+          @if (b.origin.region) { <div><dt>Region</dt><dd>{{ b.origin.region }}</dd></div> }
+          @if (b.origin.era) { <div><dt>History</dt><dd>{{ b.origin.era }}</dd></div> }
+        </dl>
+        @if (b.traits.temperament.length) { <h3>Temperament</h3><ul class="breed-chips">@for (word of b.traits.temperament; track $index) { <li>{{ word }}</li> }</ul> }
+      </section>
+      @if (traits().length) {
+        <section class="breed-section breed-section--wide"><p class="eyebrow">Their kind of character</p><h2>Personality & everyday life</h2>
+          <p class="breed-note">Ratings run from 1 (low) to 5 (high).</p>
+          <div class="breed-traits">@for (trait of traits(); track trait.label) {
+            <div class="breed-trait" role="img" [attr.aria-label]="trait.label + ': ' + trait.value + ' out of 5'">
+              <span aria-hidden="true">{{ trait.label }}</span><span class="trait-dots" aria-hidden="true">@for (dot of dots; track dot) { <i [class.filled]="dot <= trait.value"></i> }<small>{{ trait.value }}/5</small></span>
+            </div>
+          }</div>
+        </section>
+      }
+      <section class="breed-section"><p class="eyebrow">All dressed up</p><h2>Coat & care</h2>
+        <dl class="breed-facts"><div><dt>Coat type</dt><dd>{{ b.coat.type || 'Not recorded' }}</dd></div><div><dt>Coat length</dt><dd>{{ b.coat.length || 'Not recorded' }}</dd></div></dl>
+        @if (b.coat.colors.length) { <h3>Coat colors</h3><ul class="breed-chips">@for (color of b.coat.colors; track $index) { <li>{{ color }}</li> }</ul> }
+      </section>
+      <section class="breed-section"><p class="eyebrow">Also known and loved as</p><h2>Names & recognition</h2>
+        @if (b.otherNames.length) { <h3>Alternate names</h3><ul class="breed-chips">@for (name of b.otherNames; track $index) { <li>{{ name }}</li> }</ul> }
+        @if (b.recognizedBy.length) { <h3>Recognized by</h3><ul class="breed-chips">@for (club of b.recognizedBy; track $index) { <li>{{ club }}</li> }</ul> }
+        @if (!b.otherNames.length && !b.recognizedBy.length) { <p>Additional names and recognition haven’t been recorded yet.</p> }
+      </section>
+    </div>
+    @if (b.relatedBreeds.length) {
+      <section class="related-breeds" aria-labelledby="related-breeds-heading">
+        <p class="eyebrow">Keep getting to know the dogs</p>
+        <h2 id="related-breeds-heading">Related Breeds</h2>
+        <p class="breed-note">More breeds in the {{ b.group?.name }}.</p>
+        <div class="breed-grid">
+          @for (related of b.relatedBreeds; track related.id) {
+            <article class="breed-card">
+              <hp-breed-image [image]="related.image" [name]="related.name" />
+              <a class="breed-card__body" [routerLink]="['/dogipedia/breeds', related.id]" [queryParams]="backState">
+                <h3>{{ related.name }}</h3><span class="text-link">Meet the breed <svg class="forward-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5 7 7-7 7M3 12h18" /></svg></span>
+              </a>
+            </article>
+          }
+        </div>
+      </section>
+    }
+    @if (b.sources.length) {
+      <footer class="breed-sources"><h2>Further reading</h2><ul>@for (source of b.sources; track $index) {
+        <li>@if (safeUrl(source.url); as url) { <a [href]="url" target="_blank" rel="noopener noreferrer">{{ source.title || 'Breed reference' }}</a> } @else { {{ source.title || 'Breed reference' }} }</li>
+      }</ul></footer>
+    }
+  }
+</div>

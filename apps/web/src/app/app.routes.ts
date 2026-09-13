@@ -26,6 +26,16 @@ export const routes: Routes = [
     loadComponent: () => import('./layout/app-shell.component').then((m) => m.AppShellComponent),
     children: [
       {
+        path: 'dogipedia',
+        title: 'Dogipedia · HooviePack',
+        loadComponent: () => import('./features/dogipedia/dogipedia.component').then(m => m.DogipediaComponent)
+      },
+      {
+        path: 'dogipedia/breeds/:id',
+        title: 'Meet the breed · HooviePack',
+        loadComponent: () => import('./features/dogipedia/breed-detail.component').then(m => m.BreedDetailComponent)
+      },
+      {
         path: 'feed',
         title: 'Family feed · HooviePack',
         loadComponent: () => import('./features/feed/feed.component').then((m) => m.FeedComponent)

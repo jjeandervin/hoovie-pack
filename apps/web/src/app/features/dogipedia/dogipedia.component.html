@@ -1,0 +1,47 @@
+<div class="page dogipedia-page">
+  <header class="page-heading dogipedia-heading">
+    <div><p class="eyebrow">A little curiosity. A lot of dogs.</p><h1>Dogipedia</h1><p>Everything you ever wanted to know about your favorite dogs.</p></div>
+    <img src="/assets/dogipedia.svg" width="112" height="112" alt="" aria-hidden="true">
+  </header>
+  <div class="breed-search">
+    <label for="breed-search">Find your next favorite breed</label>
+    <input id="breed-search" type="search" [formControl]="query" maxlength="100" placeholder="Search dog breeds or alternate names…" autocomplete="off">
+  </div>
+  <section id="breed-results" tabindex="-1" aria-label="Dog breeds" [attr.aria-busy]="loading()">
+    @if (loading()) {
+      <hp-ui-state kind="loading" heading="Finding the good dogs…" message="Opening your breed guide." />
+    } @else if (error() === 'unavailable') {
+      <hp-ui-state kind="empty" heading="Dogipedia is getting its breed guide ready." message="Please try again in a moment." actionLabel="Try again" (action)="reload()" />
+    } @else if (error()) {
+      <hp-ui-state kind="error" heading="We lost the scent" message="We couldn’t load the breed guide. Please try again." actionLabel="Try again" (action)="reload()" />
+    } @else if (result(); as page) {
+      <p class="breed-count" role="status">{{ page.totalItems }} {{ page.totalItems === 1 ? 'breed' : 'breeds' }}{{ state().search ? ' matching “' + state().search + '”' : ' to get to know' }}</p>
+      @if (page.items.length) {
+        <div class="breed-grid">
+          @for (breed of page.items; track breed.id) {
+            <article class="breed-card">
+              <hp-breed-image [image]="breed.image" [name]="breed.name" />
+              <a class="breed-card__body" [routerLink]="['/dogipedia/breeds', breed.id]" [queryParams]="{search: state().search || null, page: state().page}">
+                @if (breed.groupName) { <p class="eyebrow">{{ breed.groupName }}</p> }
+                <h2>{{ breed.name }}</h2><p class="breed-excerpt">{{ breed.descriptionExcerpt }}</p>
+                @if (breed.lifeMinYears !== null || breed.lifeMaxYears !== null) { <small>Life expectancy · {{ range(breed.lifeMinYears, breed.lifeMaxYears, 'years') }}</small> }
+                <span class="text-link">Meet the breed <svg class="forward-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5 7 7-7 7M3 12h18" /></svg></span>
+              </a>
+            </article>
+          }
+        </div>
+      } @else if (page.totalItems === 0) {
+        <hp-ui-state kind="empty" [heading]="state().search ? 'No breeds found for “' + state().search + '”.' : 'No breeds to show yet.'" message="Try a different breed name or an alternate name." />
+      } @else {
+        <hp-ui-state kind="empty" heading="This page has wandered off" message="Head back to the first page to keep exploring." actionLabel="First page" (action)="goToPage(1)" />
+      }
+      @if (page.totalPages > 1) {
+        <nav class="breed-pagination" aria-label="Breed pages">
+          <button class="button button--secondary" [disabled]="!page.hasPreviousPage" (click)="goToPage(page.page - 1)">Previous</button>
+          <span>Page {{ page.page }} of {{ page.totalPages }}</span>
+          <button class="button button--secondary" [disabled]="!page.hasNextPage" (click)="goToPage(page.page + 1)">Next</button>
+        </nav>
+      }
+    }
+  </section>
+</div>

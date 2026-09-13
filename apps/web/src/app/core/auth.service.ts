@@ -59,7 +59,12 @@ export class AuthService {
     this.oauth.setStorage(sessionStorage);
 
     try {
-      await this.oauth.loadDiscoveryDocumentAndTryLogin();
+      await this.oauth.loadDiscoveryDocument();
+      // Invite links also use `code`; only the OIDC callback may consume it.
+      const callbackUrl = new URL(callbackUri, window.location.origin);
+      if (window.location.origin === callbackUrl.origin && window.location.pathname === callbackUrl.pathname) {
+        await this.oauth.tryLogin();
+      }
       this.oauth.setupAutomaticSilentRefresh();
       this.authErrorSignal.set(null);
     } catch (error) {

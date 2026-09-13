@@ -11,7 +11,7 @@ interface NavItem {
   label: string;
   shortLabel: string;
   route: string;
-  symbol: string;
+  icon: string;
 }
 
 @Component({
@@ -19,16 +19,24 @@ interface NavItem {
   standalone: true,
   imports: [RouterOutlet, RouterLink, RouterLinkActive, AvatarComponent, UiStateComponent],
   templateUrl: './app-shell.component.html',
+  styles: `
+    @media (max-width: 780px) {
+      .bottom-nav a:nth-child(2), .bottom-nav a:nth-child(3) { margin: 0; }
+      .bottom-nav .nav-icon { width: 48px; height: 48px; }
+      .mobile-fab { right: 16px; bottom: calc(112px + env(safe-area-inset-bottom)); transform: none; }
+    }
+  `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AppShellComponent implements OnInit {
   readonly initializing = signal(true);
   readonly shellError = signal('');
   readonly navItems: NavItem[] = [
-    { label: 'Family feed', shortLabel: 'Home', route: '/feed', symbol: '⌂' },
-    { label: 'The family', shortLabel: 'Family', route: '/family', symbol: '♧' },
-    { label: 'Dogs of the family', shortLabel: 'Dogs', route: '/dogs', symbol: '●' },
-    { label: 'Your profile', shortLabel: 'Profile', route: '/profile', symbol: '○' }
+    { label: 'Family feed', shortLabel: 'Home', route: '/feed', icon: '/assets/family-feed.png' },
+    { label: 'The family', shortLabel: 'Family', route: '/family', icon: '/assets/the-family.png' },
+    { label: 'Dogs of the family', shortLabel: 'Dogs', route: '/dogs', icon: '/assets/dogs-of-the-family.png' },
+    { label: 'Dogipedia', shortLabel: 'Dogipedia', route: '/dogipedia', icon: '/assets/dogipedia.svg' },
+    { label: 'Your profile', shortLabel: 'Profile', route: '/profile', icon: '/assets/your-profile.png' }
   ];
   readonly mobileNavItems = this.navItems;
 

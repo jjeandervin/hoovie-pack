@@ -1,5 +1,5 @@
 <div class="page detail-page dog-detail-page">
-  <a class="back-link" routerLink="/dogs"><span aria-hidden="true">←</span> All family dogs</a>
+  <a class="back-link" routerLink="/dogs"><svg class="back-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m10 5-7 7 7 7M3 12h18" /></svg> All family dogs</a>
   @if (loading()) {
     <hp-ui-state kind="loading" heading="Calling this pup…" />
   } @else if (error()) {

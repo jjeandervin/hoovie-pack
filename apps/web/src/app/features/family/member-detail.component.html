@@ -1,5 +1,5 @@
 <div class="page detail-page">
-  <a class="back-link" routerLink="/family"><span aria-hidden="true">←</span> Back to family</a>
+  <a class="back-link" routerLink="/family"><svg class="back-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m10 5-7 7 7 7M3 12h18" /></svg> Back to family</a>
   @if (loading()) {
     <hp-ui-state kind="loading" heading="Finding your family member…" />
   } @else if (error()) {

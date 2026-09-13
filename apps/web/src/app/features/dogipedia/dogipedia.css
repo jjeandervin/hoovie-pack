@@ -1,0 +1,56 @@
+:host { display: block; }
+.dogipedia-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.dogipedia-heading img { flex: 0 0 112px; transform: rotate(5deg); }
+.breed-search { margin: 0 0 28px; padding: 22px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--paper); }
+.breed-search label { display: block; margin-bottom: 10px; color: var(--sage-800); font-size: .82rem; font-weight: 750; }
+.breed-search input { width: 100%; min-height: 48px; border: 1px solid var(--line); border-radius: 12px; padding: 12px 15px; background: var(--cream); }
+.breed-count { margin-bottom: 18px; color: var(--muted); font-size: .82rem; }
+.breed-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
+.breed-card { position: relative; min-width: 0; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--paper); box-shadow: var(--shadow-sm); transition: box-shadow .2s; }
+.breed-card:hover, .breed-card:focus-within { box-shadow: var(--shadow-md); }
+.breed-card__body { display: flex; flex-direction: column; gap: 12px; padding: 22px; color: inherit; text-decoration: none; }
+.breed-card__body h2 { margin: 0; font-size: 1.35rem; overflow-wrap: anywhere; }
+.breed-card__body p { margin: 0; }
+.breed-card__body .eyebrow { font-size: .62rem; }
+.breed-excerpt { display: -webkit-box; overflow: hidden; -webkit-line-clamp: 3; -webkit-box-orient: vertical; color: var(--muted); font-size: .83rem; line-height: 1.65; }
+.breed-card__body small { color: var(--sage-700); font-size: .72rem; }
+.breed-card__body .text-link { font-size: .8rem; }
+.breed-pagination { display: flex; align-items: center; justify-content: center; gap: 20px; margin-top: 30px; font-size: .8rem; }
+.breed-back { margin-bottom: 25px; font-size: .82rem; }
+.breed-intro { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 30px; align-items: start; margin-bottom: 30px; }
+.breed-portrait { overflow: hidden; border-radius: var(--radius-lg); background: var(--paper); }
+.breed-story { padding: 12px 0; }
+.breed-story > p { white-space: pre-line; color: var(--muted); line-height: 1.8; }
+.breed-sections { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+.breed-section { padding: 26px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--paper); }
+.breed-section--wide { grid-column: 1 / -1; }
+.breed-section h2 { font-size: 1.5rem; margin-bottom: 20px; }
+.breed-section h3 { margin: 20px 0 12px; font-size: .9rem; }
+.breed-section > p:not(.eyebrow) { color: var(--muted); font-size: .84rem; }
+.breed-facts { margin: 0; }
+.breed-facts > div { display: flex; justify-content: space-between; gap: 20px; padding: 11px 0; border-bottom: 1px solid var(--line); font-size: .82rem; }
+.breed-facts dt { color: var(--muted); }
+.breed-facts dd { margin: 0; text-align: right; color: var(--sage-800); font-weight: 650; overflow-wrap: anywhere; }
+.breed-chips { display: flex; flex-wrap: wrap; gap: 7px; list-style: none; padding: 0; margin: 0; }
+.breed-chips li { padding: 6px 11px; border-radius: 999px; background: var(--sage-100); color: var(--sage-800); font-size: .76rem; overflow-wrap: anywhere; }
+.breed-traits { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 36px; }
+.breed-trait { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: .8rem; }
+.trait-dots { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+.trait-dots i { width: 11px; height: 11px; border: 1px solid var(--sage-600); border-radius: 50%; }
+.trait-dots i.filled { background: var(--sage-700); }
+.trait-dots small { margin-left: 6px; color: var(--muted); }
+.breed-sources { margin-top: 30px; font-size: .8rem; color: var(--muted); overflow-wrap: anywhere; }
+.breed-sources h2 { font-size: 1rem; }
+.breed-sources li { margin-bottom: 8px; }
+.related-breeds { margin-top: 36px; }
+.related-breeds > h2 { margin-bottom: 10px; }
+.related-breeds > .breed-note { margin-bottom: 20px; color: var(--muted); font-size: .84rem; }
+.related-breeds h3 { margin: 0; font-size: 1.15rem; overflow-wrap: anywhere; }
+@media (max-width: 1100px) { .breed-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) {
+  .dogipedia-heading img { width: 72px; height: 72px; flex-basis: 72px; }
+  .breed-grid, .breed-intro, .breed-sections, .breed-traits { grid-template-columns: minmax(0, 1fr); }
+  .breed-pagination { gap: 10px; }
+  .breed-pagination button { padding: 10px 14px; }
+  .breed-section { padding: 22px; }
+}

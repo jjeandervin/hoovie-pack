@@ -5,6 +5,10 @@ namespace HooviePack.Api.Infrastructure.Data;
 
 public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
+    public DbSet<DogipediaBreed> DogipediaBreeds => Set<DogipediaBreed>();
+    public DbSet<DogipediaBreedGroup> DogipediaBreedGroups => Set<DogipediaBreedGroup>();
+    public DbSet<DogipediaBreedImage> DogipediaBreedImages => Set<DogipediaBreedImage>();
+    public DbSet<DogipediaSyncState> DogipediaSyncStates => Set<DogipediaSyncState>();
     public DbSet<AppUser> Users => Set<AppUser>();
     public DbSet<Family> Families => Set<Family>();
     public DbSet<FamilyMembership> FamilyMemberships => Set<FamilyMembership>();
@@ -18,6 +22,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        modelBuilder.ConfigureDogipedia();
 
         modelBuilder.Entity<AppUser>(entity =>
         {
