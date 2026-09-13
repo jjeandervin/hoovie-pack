@@ -30,6 +30,8 @@ Failures preserve the previous successful catalog and timestamp. They update bou
 
 Images remain upstream URLs; no images are copied to S3. Cards and details show image credits. Imported text uses Angular interpolation, and only absolute HTTP(S) links are exposed. Missing/failed images show the Dogipedia book-and-paw placeholder.
 
+The web container's CSP permits `https://images.dogapi.dog` in `img-src`. This public origin is defined once in `apps/web/docker-entrypoint.d/40-runtime-config.sh` and substituted into the Nginx policy; no new `.env` value is required. The existing S3 and OIDC origins retain their deployment settings. Rebuild and replace the web container to apply CSP changes; the API and outer Nginx proxy do not define a separate CSP in this repository.
+
 ## Configuration and deployment
 
 Defaults are in the main API's `appsettings.json`. Environment overrides are:

@@ -8,6 +8,8 @@ oidc_redirect_uri="${OIDC_REDIRECT_URI:-}"
 oidc_post_logout_redirect_uri="${OIDC_POST_LOGOUT_REDIRECT_URI:-}"
 csp_oidc_origin="${CSP_OIDC_ORIGIN:-http://localhost:8081}"
 csp_s3_origin="${CSP_S3_ORIGIN:?CSP_S3_ORIGIN is required}"
+# Public, application-owned image source; no deployment environment setting needed.
+csp_dogipedia_image_origin='https://images.dogapi.dog'
 
 if ! printf '%s\n' "$csp_oidc_origin" \
   | grep -Eq '^https?://([A-Za-z0-9.-]+|\[[0-9A-Fa-f:]+\])(:[0-9]{1,5})?$'; then
@@ -24,7 +26,8 @@ fi
 # Substitute only these placeholders so nginx runtime variables remain intact.
 export CSP_OIDC_ORIGIN="$csp_oidc_origin"
 export CSP_S3_ORIGIN="$csp_s3_origin"
-envsubst '${CSP_OIDC_ORIGIN} ${CSP_S3_ORIGIN}' \
+export CSP_DOGIPEDIA_IMAGE_ORIGIN="$csp_dogipedia_image_origin"
+envsubst '${CSP_OIDC_ORIGIN} ${CSP_S3_ORIGIN} ${CSP_DOGIPEDIA_IMAGE_ORIGIN}' \
   < /etc/nginx/conf.d/default.conf \
   > /tmp/hooviepack-nginx.conf
 mv /tmp/hooviepack-nginx.conf /etc/nginx/conf.d/default.conf

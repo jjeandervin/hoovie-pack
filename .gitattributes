@@ -1,0 +1,2 @@
+# Docker executes the web startup scripts with Linux /bin/sh.
+apps/web/docker-entrypoint.d/*.sh text eol=lf
