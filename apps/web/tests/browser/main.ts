@@ -5,6 +5,8 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideRouter, RouterOutlet } from '@angular/router';
 import { DogipediaComponent } from '../../src/app/features/dogipedia/dogipedia.component';
 import { BreedDetailComponent } from '../../src/app/features/dogipedia/breed-detail.component';
+import { DogEditorComponent } from '../../src/app/features/dogs/dog-editor.component';
+import { DogDetailComponent } from '../../src/app/features/dogs/dog-detail.component';
 import { RuntimeConfigService } from '../../src/app/core/runtime-config.service';
 import { AppShellComponent } from '../../src/app/layout/app-shell.component';
 import { ActiveFamilyService } from '../../src/app/core/active-family.service';
@@ -28,6 +30,9 @@ bootstrapApplication(TestRoot, {
     { provide: AuthService, useValue: { displayName: () => 'Jamie', logout: () => {} } },
     provideRouter([
       { path: '', component: AppShellComponent, children: [
+        { path: 'dogs/new', component: DogEditorComponent },
+        { path: 'dogs/:dogId/edit', component: DogEditorComponent },
+        { path: 'dogs/:dogId', component: DogDetailComponent },
         { path: 'dogipedia', component: DogipediaComponent },
         { path: 'dogipedia/breeds/:id', component: BreedDetailComponent }
       ] }

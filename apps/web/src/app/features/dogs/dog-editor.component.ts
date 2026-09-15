@@ -11,12 +11,14 @@ import { ToastService } from '../../core/toast.service';
 import { ImageUploaderComponent } from '../../shared/image-uploader.component';
 import { UiStateComponent } from '../../shared/ui-state.component';
 import { AuthImageDirective } from '../../shared/auth-image.directive';
+import { BreedAutocompleteComponent } from './breed-autocomplete.component';
 
 @Component({
   selector: 'hp-dog-editor',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, AuthImageDirective, ImageUploaderComponent, UiStateComponent],
+  imports: [ReactiveFormsModule, RouterLink, AuthImageDirective, ImageUploaderComponent, UiStateComponent, BreedAutocompleteComponent],
   templateUrl: './dog-editor.component.html',
+  styles: `.form-grid { align-items: start; }`,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class DogEditorComponent implements OnInit {

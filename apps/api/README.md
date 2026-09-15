@@ -12,6 +12,8 @@ The services share PostgreSQL while using separate EF Core contexts and schema h
 
 Dogipedia's local breed catalog, synchronization settings, deployment behavior, and verification commands are documented in [docs/dogipedia.md](../../docs/dogipedia.md).
 
+The curated quote endpoints, schema, and verification commands are documented in [docs/dog-quotes.md](../../docs/dog-quotes.md).
+
 From `apps/api`:
 
 ```powershell

@@ -8,8 +8,8 @@ export class DogipediaApiService {
   private readonly http = inject(HttpClient);
   private readonly config = inject(RuntimeConfigService);
 
-  list(search: string, page: number) {
-    const params = new HttpParams().set('search', search).set('page', page).set('pageSize', 24);
+  list(search: string, page: number, pageSize = 24) {
+    const params = new HttpParams().set('search', search).set('page', page).set('pageSize', pageSize);
     return this.http.get<BreedPage>(`${this.config.apiBaseUrl}/dogipedia/breeds`, { params });
   }
 

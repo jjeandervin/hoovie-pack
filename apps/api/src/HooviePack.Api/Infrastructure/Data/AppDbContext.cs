@@ -5,6 +5,7 @@ namespace HooviePack.Api.Infrastructure.Data;
 
 public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
+    public DbSet<DogQuote> DogQuotes => Set<DogQuote>();
     public DbSet<DogipediaBreed> DogipediaBreeds => Set<DogipediaBreed>();
     public DbSet<DogipediaBreedGroup> DogipediaBreedGroups => Set<DogipediaBreedGroup>();
     public DbSet<DogipediaBreedImage> DogipediaBreedImages => Set<DogipediaBreedImage>();
@@ -19,10 +20,37 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<Comment> Comments => Set<Comment>();
     public DbSet<Reaction> Reactions => Set<Reaction>();
 
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        PrepareDogQuotes();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        PrepareDogQuotes();
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    private void PrepareDogQuotes()
+    {
+        var now = DateTimeOffset.UtcNow;
+        foreach (var entry in ChangeTracker.Entries<DogQuote>()
+            .Where(x => x.State is EntityState.Added or EntityState.Modified))
+        {
+            if (string.IsNullOrWhiteSpace(entry.Entity.Text))
+                throw new InvalidOperationException("Dog quote text is required.");
+            entry.Entity.Text = entry.Entity.Text.Trim();
+            if (entry.State == EntityState.Added) entry.Entity.CreatedAtUtc = now;
+            entry.Entity.UpdatedAtUtc = now;
+        }
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.ConfigureDogipedia();
+        modelBuilder.ApplyConfiguration(new DogQuoteConfiguration());
 
         modelBuilder.Entity<AppUser>(entity =>
         {
