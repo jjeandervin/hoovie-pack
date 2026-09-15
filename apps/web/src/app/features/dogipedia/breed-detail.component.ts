@@ -8,7 +8,8 @@ import { DogipediaApiService } from './dogipedia-api.service';
 import { BreedImageComponent } from './breed-image.component';
 import { BreedGalleryComponent } from './breed-gallery.component';
 import { BreedDetail, BreedTraits } from './dogipedia.models';
-import { browseState, measurement, safeExternalUrl } from './dogipedia.helpers';
+import { searchParams, searchState } from './dogipedia-search';
+import { measurement, safeExternalUrl } from './dogipedia.helpers';
 
 const TRAITS: [keyof Omit<BreedTraits, 'temperament' | 'exerciseMinutes'>, string][] = [
   ['energy', 'Energy'], ['trainability', 'Trainability'], ['barking', 'Barking'],
@@ -28,7 +29,7 @@ export class BreedDetailComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly title = inject(Title);
   private readonly retry = new Subject<void>();
-  readonly backState = browseState(this.route.snapshot.queryParamMap);
+  readonly backState = searchParams(searchState(this.route.snapshot.queryParamMap));
   readonly breed = signal<BreedDetail | null>(null);
   readonly loading = signal(true);
   readonly error = signal<'missing' | 'error' | ''>('');

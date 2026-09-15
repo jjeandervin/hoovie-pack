@@ -5,7 +5,22 @@
   </header>
   <div class="breed-search">
     <label for="breed-search">Find your next favorite breed</label>
-    <input id="breed-search" type="search" [formControl]="query" maxlength="100" placeholder="Search dog breeds or alternate names…" autocomplete="off">
+    <div class="search-row"><input id="breed-search" type="search" [formControl]="query" maxlength="100" placeholder="Search dog breeds or alternate names…" autocomplete="off">
+      <button type="button" class="button button--secondary" [attr.aria-expanded]="expanded()" aria-controls="advanced-filters" (click)="toggleFilters()">Filters{{ chips().length ? ' (' + chips().length + ')' : '' }}</button>
+    </div>
+    @if (chips().length) {
+      <div class="active-filters" aria-label="Active filters" aria-live="polite">
+        @for (chip of chips(); track chip.id) { <button type="button" [attr.aria-label]="'Remove ' + chip.label" (click)="removeChip(chip)">{{ chip.label }} &times;</button> }
+        <button type="button" (click)="clearAll()">Clear all</button>
+      </div>
+    }
+    <div id="advanced-filters" [hidden]="!expanded()">
+      @if (options(); as options) {
+        <hp-dogipedia-advanced-filters [state]="state()" [options]="options" (filtersChange)="changeFilters($event)" />
+      } @else if (optionsError()) {
+        <p>We couldn't load the filter options. <button type="button" (click)="loadOptions()">Try again</button></p>
+      } @else if (expanded()) { <p role="status">Loading filter options...</p> }
+    </div>
   </div>
   <section id="breed-results" tabindex="-1" aria-label="Dog breeds" [attr.aria-busy]="loading()">
     @if (loading()) {
@@ -15,13 +30,13 @@
     } @else if (error()) {
       <hp-ui-state kind="error" heading="We lost the scent" message="We couldn’t load the breed guide. Please try again." actionLabel="Try again" (action)="reload()" />
     } @else if (result(); as page) {
-      <p class="breed-count" role="status">{{ page.totalItems }} {{ page.totalItems === 1 ? 'breed' : 'breeds' }}{{ state().search ? ' matching “' + state().search + '”' : ' to get to know' }}</p>
+      <p class="breed-count" role="status">{{ page.totalItems }} {{ page.totalItems === 1 ? 'breed' : 'breeds' }} found{{ state().search ? ' matching “' + state().search + '”' : '' }}</p>
       @if (page.items.length) {
         <div class="breed-grid">
           @for (breed of page.items; track breed.id) {
             <article class="breed-card">
               <hp-breed-image [image]="breed.image" [name]="breed.name" />
-              <a class="breed-card__body" [routerLink]="['/dogipedia/breeds', breed.id]" [queryParams]="{search: state().search || null, page: state().page}">
+              <a class="breed-card__body" [routerLink]="['/dogipedia/breeds', breed.id]" [queryParams]="params()">
                 @if (breed.groupName) { <p class="eyebrow">{{ breed.groupName }}</p> }
                 <h2>{{ breed.name }}</h2><p class="breed-excerpt">{{ breed.descriptionExcerpt }}</p>
                 @if (breed.lifeMinYears !== null || breed.lifeMaxYears !== null) { <small>Life expectancy · {{ range(breed.lifeMinYears, breed.lifeMaxYears, 'years') }}</small> }
@@ -31,7 +46,11 @@
           }
         </div>
       } @else if (page.totalItems === 0) {
+        @if (chips().length) {
+          <hp-ui-state kind="empty" heading="No breeds match all of those filters." message="Try relaxing one or more preferences." actionLabel="Clear all" (action)="clearAll()" />
+        } @else {
         <hp-ui-state kind="empty" [heading]="state().search ? 'No breeds found for “' + state().search + '”.' : 'No breeds to show yet.'" message="Try a different breed name or an alternate name." />
+        }
       } @else {
         <hp-ui-state kind="empty" heading="This page has wandered off" message="Head back to the first page to keep exploring." actionLabel="First page" (action)="goToPage(1)" />
       }

@@ -54,3 +54,10 @@
   .breed-pagination button { padding: 10px 14px; }
   .breed-section { padding: 22px; }
 }
+
+.search-row { display: flex; align-items: center; gap: 12px; }
+.search-row input { min-width: 0; flex: 1; }
+.search-row button { flex-shrink: 0; }
+.active-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.active-filters button { border: 1px solid var(--line); border-radius: 18px; padding: 8px 12px; background: var(--sage-100); color: var(--sage-800); font-size: .8rem; overflow-wrap: anywhere; }
+@media (max-width: 450px) { .breed-search { padding: 14px; } .search-row { flex-wrap: wrap; } .search-row input { flex-basis: 100%; } }

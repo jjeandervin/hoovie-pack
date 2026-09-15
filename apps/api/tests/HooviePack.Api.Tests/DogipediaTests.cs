@@ -17,7 +17,7 @@ using Npgsql;
 
 namespace HooviePack.Api.Tests;
 
-public sealed class DogipediaTests
+public sealed partial class DogipediaTests
 {
     [Fact]
     public void Search_text_normalizes_case_whitespace_duplicates_and_blank_names() =>

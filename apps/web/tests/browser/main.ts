@@ -2,7 +2,7 @@ import '@angular/compiler';
 import { Component } from '@angular/core';
 import { bootstrapApplication } from '@angular/platform-browser';
 import { provideHttpClient } from '@angular/common/http';
-import { provideRouter, RouterOutlet } from '@angular/router';
+import { provideRouter, RouterOutlet, withInMemoryScrolling } from '@angular/router';
 import { DogipediaComponent } from '../../src/app/features/dogipedia/dogipedia.component';
 import { BreedDetailComponent } from '../../src/app/features/dogipedia/breed-detail.component';
 import { DogEditorComponent } from '../../src/app/features/dogs/dog-editor.component';
@@ -36,5 +36,5 @@ bootstrapApplication(TestRoot, {
         { path: 'dogipedia', component: DogipediaComponent },
         { path: 'dogipedia/breeds/:id', component: BreedDetailComponent }
       ] }
-    ])]
+    ], withInMemoryScrolling({ scrollPositionRestoration: 'top' }))]
 }).catch(console.error);

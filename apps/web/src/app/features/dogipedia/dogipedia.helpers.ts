@@ -14,11 +14,3 @@ export function measurement(min: number | null | undefined, max: number | null |
   if (high === null) return `From ${low} ${unit}`;
   return `${low === high ? low : `${low}–${high}`} ${unit}`;
 }
-
-export function browseState(params: { get(name: string): string | null }): { search: string; page: number } {
-  const page = Number(params.get('page') || 1);
-  return {
-    search: (params.get('search') || '').trim().slice(0, 100),
-    page: Number.isSafeInteger(page) && page > 0 && page <= Math.floor(2147483647 / 24) ? page : 1
-  };
-}

@@ -14,14 +14,18 @@ public sealed class DogipediaBreedsController(IDogipediaBreedService breeds) : C
     [ProducesResponseType<DogipediaPageResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status503ServiceUnavailable)]
     public async Task<ActionResult<DogipediaPageResponse>> List(CancellationToken cancellationToken,
-        [FromQuery] string? search = null, [FromQuery] int page = 1, [FromQuery] int pageSize = 24)
+        [FromQuery] DogipediaBreedSearchRequest? request = null)
     {
         if (!await breeds.IsAvailableAsync(cancellationToken))
             return Problem(statusCode: StatusCodes.Status503ServiceUnavailable,
                 title: "Dogipedia is getting its breed guide ready.", detail: "Please try again in a moment.",
                 extensions: new Dictionary<string, object?> { ["code"] = "dogipedia_catalog_unavailable" });
-        return Ok(await breeds.ListAsync(search, page, pageSize, cancellationToken));
+        return Ok(await breeds.ListAsync(request ?? new(), cancellationToken));
     }
+
+    [HttpGet("filter-options")]
+    public async Task<ActionResult<DogipediaFilterOptions>> FilterOptions(CancellationToken cancellationToken) =>
+        Ok(await breeds.FilterOptionsAsync(cancellationToken));
 
     [HttpGet("{id:guid}")]
     [ProducesResponseType<DogipediaBreedResponse>(StatusCodes.Status200OK)]

@@ -1,14 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { browseState, measurement, safeExternalUrl } from '../src/app/features/dogipedia/dogipedia.helpers.ts';
-
-test('browse state restores a bookmark and normalizes invalid pages', () => {
-  assert.deepEqual(browseState(new URLSearchParams('search=+corgi+&page=3')), { search: 'corgi', page: 3 });
-  for (const page of ['0', '-1', 'NaN', '1.5', '999999999999999']) {
-    assert.equal(browseState(new URLSearchParams({ page })).page, 1);
-  }
-  assert.equal(browseState(new URLSearchParams({ search: 'a'.repeat(200) })).search.length, 100);
-});
+import { measurement, safeExternalUrl } from '../src/app/features/dogipedia/dogipedia.helpers.ts';
 
 test('measurements convert units and preserve genuinely missing bounds', () => {
   assert.equal(measurement(10, 14, 'lb', 2.2046226218), '22–31 lb');

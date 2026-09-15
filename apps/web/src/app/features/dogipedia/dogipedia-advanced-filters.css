@@ -1,0 +1,23 @@
+:host { display: block; margin-top: 22px; }
+.filter-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
+.filter-group { min-width: 0; border: 1px solid var(--line); border-radius: 14px; padding: 16px; background: var(--paper); }
+summary { cursor: pointer; color: var(--sage-800); font-weight: 700; padding: 5px 0; }
+fieldset { min-width: 0; border: 0; padding: 0; margin: 20px 0 10px; }
+legend, .threshold { display: block; width: 100%; font-size: .85rem; font-weight: 650; margin-top: 18px; }
+legend { margin-top: 0; }
+legend span, .threshold span { float: right; font-weight: 400; }
+input[type=range] { width: 100%; accent-color: var(--sage-700); min-height: 36px; }
+input[type=search], input[type=number] { box-sizing: border-box; width: 100%; padding: 10px; margin: 8px 0; border: 1px solid var(--line); border-radius: 8px; background: var(--cream); }
+.check { display: flex; align-items: center; gap: 8px; min-height: 36px; font-size: .85rem; overflow-wrap: anywhere; }
+input[type=checkbox] { flex-shrink: 0; accent-color: var(--sage-700); width: 18px; height: 18px; }
+.choices, .selected { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 8px; }
+.selected button { border: 1px solid var(--line); border-radius: 18px; padding: 8px; background: var(--sage-100); color: var(--sage-800); overflow-wrap: anywhere; }
+small, .range-ends { font-size: .75rem; color: var(--muted); }
+.range-ends { display: flex; justify-content: space-between; }
+.dual-range { position: relative; height: 38px; margin-top: 8px; }
+.range-track { position: absolute; top: 16px; left: 0; right: 0; height: 6px; border-radius: 4px; background: var(--sage-100); }
+.dual-range input { position: absolute; inset: 0; margin: 0; background: transparent; pointer-events: none; appearance: none; }
+.dual-range input::-webkit-slider-thumb { appearance: none; pointer-events: auto; width: 22px; height: 22px; border-radius: 50%; background: var(--sage-700); border: 2px solid var(--paper); cursor: grab; }
+.dual-range input::-moz-range-thumb { pointer-events: auto; width: 20px; height: 20px; border-radius: 50%; background: var(--sage-700); border: 2px solid var(--paper); cursor: grab; }
+.dual-range input:focus-visible { outline: 2px solid var(--sage-700); outline-offset: 3px; }
+@media (max-width: 650px) { .filter-groups { grid-template-columns: minmax(0, 1fr); } }

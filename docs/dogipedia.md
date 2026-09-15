@@ -71,3 +71,40 @@ npm run test:dogipedia:browser
 ```
 
 To use installed Edge for the browser checks, set `$env:PLAYWRIGHT_CHANNEL = 'msedge'` instead of installing Chromium. The browser suite compiles the real Angular components and app shell with Angular's compiler, substitutes test identity/family providers, and mocks HooviePack's HTTP boundary. It covers debounce, cancellation, URL state, pagination, navigation, missing data, attribution, unsafe content and responsive layouts, plus gallery selection, keyboard controls, per-photo failures, and related-breed navigation. PostgreSQL tests verify image ownership/order, related-breed filtering/limits, and the fixed query count. Screenshots are written beneath `apps/web/test-results/`.
+
+
+## Advanced breed search
+
+Dogipedia's existing browse page includes a collapsible Filters panel. Filters combine with text search,
+remain visible as removable chips when collapsed, and persist in repeated URL query parameters.
+Clear all resets advanced filters while preserving the search text. Filter edits update controls immediately
+and debounce navigation/search by 300 ms; `switchMap` cancels superseded requests. Pagination and detail-page
+return links retain the complete search state. Mobile uses the same component in a single-column panel,
+with height and origin country under More filters.
+
+`GET /api/dogipedia/breeds` accepts `DogipediaBreedSearchRequest`. Supported optional filters:
+
+- `energyMin`, `energyMax`, `trainabilityMin`, `barkingMax`, `groomingMax`, `sheddingMax`, `droolingMax`
+- `goodWithChildrenMin`, `goodWithDogsMin`, `goodWithStrangersMin`, `apartmentFriendlyMin`
+- `exerciseMinMinutes`, `exerciseMaxMinutes`, `minimumLifeMaxYears`, `hypoallergenicOnly`
+- `adultWeightMinKg`, `adultWeightMaxKg`, `adultHeightMinCm`, `adultHeightMaxCm`
+- Repeated `breedGroupIds`, `coatLengths`, `coatTypes`, `coatColors`, `temperaments`, `recognizedBy`, `originCountries`
+
+Thresholds are inclusive. Different filters combine with AND; category selections combine with OR,
+except temperament selections require ALL selected exact terms. Collection comparisons ignore case and
+surrounding whitespace; coat colors use substring matching. Missing values remain eligible until a filter
+requires that field. Adult size combines available male/female bounds and matches overlapping ranges.
+The UI displays pounds/inches and sends canonical kilograms/centimeters. Only `sort=name` is supported;
+existing exact/prefix/name text-search prioritization is preserved.
+
+`GET /api/dogipedia/breeds/filter-options` returns active-catalog numeric bounds, local group IDs/names,
+and sorted, deduplicated string arrays for the categorical options. Empty numeric datasets return null
+bounds. Options are derived on each request, so synchronization changes need no frontend deployment.
+
+Scalar predicates execute in PostgreSQL. Collection filtering uses only IDs and the three relevant arrays
+in memory, then returns matching IDs to the SQL query before sorting, counting, and paging. Card projection
+and image selection remain unchanged. These endpoints read only the local catalog and require no migration.
+
+Coverage lives in `DogipediaAdvancedSearchTests.cs`, `dogipedia-search.test.mjs`, and
+`tests/browser/dogipedia-advanced.spec.mjs`. API integration tests use isolated PostgreSQL schemas through
+`HOOVIEPACK_TEST_POSTGRES`. Browser tests can use installed Edge with `PLAYWRIGHT_CHANNEL=msedge`.
