@@ -1,0 +1,83 @@
+import { test, expect } from '@playwright/test';
+
+test('mobile navigation collapses on scroll and reopens with touch or keyboard', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 600 });
+  await page.goto('/posts/new');
+  await expect(page.getByRole('heading', { name: 'Share', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Share', exact: true })).toBeVisible();
+  await expect(page.locator('.mobile-fab')).toHaveCount(0);
+  const actions = page.locator('.composer-actions');
+  const expandedActions = await actions.boundingBox();
+  await page.evaluate(() => window.scrollTo(0, 180));
+  const handle = page.getByRole('button', { name: 'Show navigation' });
+  await expect(handle).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Your pack' })).toBeVisible();
+  await expect(page.locator('#active-family')).toBeHidden();
+  await expect(page.locator('#mobile-navigation')).toHaveAttribute('inert', '');
+  await expect(page.locator('#mobile-navigation')).not.toBeInViewport();
+  await expect.poll(async () => Math.round((await actions.boundingBox()).y - expandedActions.y)).toBe(99);
+  await expect.poll(async () => {
+    const box = await actions.boundingBox();
+    return Math.round(box.y + box.height);
+  }).toBe(556);
+  await handle.click();
+  await expect(page.getByRole('button', { name: 'Hide navigation' })).toHaveAttribute('aria-expanded', 'true');
+  await expect.poll(async () => Math.round((await actions.boundingBox()).y - expandedActions.y)).toBe(0);
+  await page.getByRole('button', { name: 'Hide navigation' }).press('Enter');
+  await expect(handle).toHaveAttribute('aria-expanded', 'false');
+  const box = await handle.boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2, box.y - 60, { steps: 5 });
+  await page.mouse.up();
+  await expect(page.getByRole('button', { name: 'Hide navigation' })).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.locator('#mobile-navigation')).not.toHaveAttribute('inert');
+  await page.locator('#mobile-navigation').getByRole('link', { name: 'Tools', exact: true }).click();
+  await expect(page.locator('.mobile-fab')).toBeVisible();
+  const circle = await page.locator('.mobile-fab').boundingBox();
+  const plus = await page.locator('.mobile-fab svg').boundingBox();
+  expect(Math.abs(circle.x + circle.width / 2 - plus.x - plus.width / 2)).toBeLessThan(1);
+  expect(Math.abs(circle.y + circle.height / 2 - plus.y - plus.height / 2)).toBeLessThan(1);
+  await page.locator('.mobile-fab').click();
+  await expect(page).toHaveURL(/posts\/new$/);
+  await expect(page.locator('.mobile-fab')).toHaveCount(0);
+});
+
+test('desktop keeps full share wording and mobile controls stay hidden', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto('/posts/new');
+  await expect(page.getByRole('heading', { name: 'Share an update', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Share with the pack', exact: true })).toBeVisible();
+  await expect(page.locator('.mobile-nav-drawer')).toBeHidden();
+  await expect(page.locator('.side-rail')).toBeVisible();
+  await expect(page.locator('#active-family')).toBeVisible();
+  await expect(page.locator('.mobile-pack-button')).toBeHidden();
+});
+
+test('mobile pack button opens beside the profile without taking up page space', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 700 });
+  await page.goto('/posts/new');
+  const heading = page.getByRole('heading', { name: 'Share', exact: true });
+  await expect(heading).toBeVisible();
+  const initialHeading = await heading.boundingBox();
+  const trigger = page.getByRole('button', { name: 'Your pack' });
+  const panel = page.locator('#mobile-pack-panel');
+  const triggerBox = await trigger.boundingBox();
+  const profileBox = await page.locator('.mobile-header').getByRole('link', { name: 'Open your profile' }).boundingBox();
+  expect(triggerBox.x + triggerBox.width).toBeLessThan(profileBox.x);
+  expect(profileBox.x + profileBox.width).toBeLessThanOrEqual(320);
+  await expect(panel).toBeHidden();
+  await expect(page.locator('#active-family')).toBeHidden();
+  expect(await page.locator('.shell-content').evaluate(el => el.getBoundingClientRect().top)).toBe(64);
+  await trigger.click();
+  await expect(panel.getByRole('combobox', { name: 'Your pack' })).toHaveValue('pack');
+  await expect(panel.locator('.privacy-chip')).toBeVisible();
+  expect((await heading.boundingBox()).y).toBe(initialHeading.y);
+  await expect(page.getByRole('button', { name: 'Hide navigation' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(panel).toBeHidden();
+  await trigger.press('Enter');
+  await expect(panel).toBeVisible();
+  await page.locator('#post-content').click();
+  await expect(panel).toBeHidden();
+});

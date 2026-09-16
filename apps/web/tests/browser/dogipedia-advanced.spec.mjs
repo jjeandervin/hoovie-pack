@@ -27,6 +27,15 @@ test('expands, debounces keyboard sliders, combines search, collapses, removes a
   await expect(page.getByRole('button', { name: 'Filters', exact: true })).toHaveAttribute('aria-expanded', 'true');
   await expect(page.getByText('Lifestyle & Personality', { exact: true })).toBeVisible();
   expect(requests.length).toBe(1);
+  await expect(page.locator('.filter-group[open]')).toHaveCount(0);
+  const rightColumn = page.locator('.filter-column').nth(1);
+  const beforeRight = await rightColumn.boundingBox();
+  await page.locator('summary').filter({ hasText: 'Lifestyle & Personality' }).click();
+  expect((await rightColumn.boundingBox()).y).toBe(beforeRight.y);
+  const leftDetails = page.locator('summary').filter({ hasText: 'Breed Details' });
+  const beforeLeft = await leftDetails.boundingBox();
+  await page.locator('summary').filter({ hasText: 'Family & Social' }).click();
+  expect((await leftDetails.boundingBox()).y).toBe(beforeLeft.y);
   const slider = page.getByRole('slider', { name: 'Minimum Trainability' });
   await slider.focus();
   await slider.press('ArrowRight');
@@ -54,6 +63,9 @@ test('expands, debounces keyboard sliders, combines search, collapses, removes a
 test('searchable multiple selection, range conversion and zero results', async ({ page }) => {
   const requests = await setup(page);
   await page.getByRole('button', { name: 'Filters', exact: true }).click();
+  for (const group of ['Lifestyle & Personality', 'Care & Coat', 'Size & Exercise']) {
+    await page.locator('summary').filter({ hasText: group }).click();
+  }
   await page.getByRole('searchbox', { name: 'Search Coat colors' }).fill('black');
   await page.getByRole('checkbox', { name: 'black', exact: true }).check();
   await page.getByRole('checkbox', { name: 'black and tan', exact: true }).check();
@@ -101,6 +113,9 @@ for (const width of [1280, 375]) {
     await page.setViewportSize({ width, height: 812 });
     await setup(page);
     await page.getByRole('button', { name: 'Filters', exact: true }).click();
+    for (const group of ['Lifestyle & Personality', 'Care & Coat']) {
+      await page.locator('summary').filter({ hasText: group }).click();
+    }
     const slider = page.getByRole('slider', { name: 'Maximum Shedding' });
     await slider.scrollIntoViewIfNeeded();
     await slider.focus();

@@ -1,4 +1,4 @@
-<div class="app-shell">
+<div class="app-shell" [style.--mobile-nav-offset]="navCollapsed() ? '0px' : '99px'">
   <aside class="side-rail" aria-label="Primary navigation">
     <a class="brand brand--rail" routerLink="/feed" aria-label="HooviePack home">
       <img class="brand-mark" src="/assets/butt-logo.png" alt="" aria-hidden="true">
@@ -29,9 +29,23 @@
         <img class="brand-mark" src="/assets/butt-logo.png" alt="" aria-hidden="true">
         <span class="brand-copy"><strong>HooviePack</strong></span>
       </a>
+      <div class="mobile-header-actions">
+      @if (!initializing() && !shellError() && families.families().length > 0) {
+        <button type="button" class="mobile-pack-button" popovertarget="mobile-pack-panel" aria-label="Your pack" [title]="families.activeFamily()?.name || 'Your pack'">Pack <span aria-hidden="true">⌄</span></button>
+        <div id="mobile-pack-panel" class="mobile-pack-panel" popover="auto">
+          <label for="mobile-active-family">Your pack</label>
+          <select id="mobile-active-family" [value]="families.activeId() || ''" (change)="changeFamily($event)">
+            @for (family of families.families(); track family.id) {
+              <option [value]="family.id">{{ family.name }}</option>
+            }
+          </select>
+          <span class="privacy-chip"><span aria-hidden="true">●</span> Private</span>
+        </div>
+      }
       <a routerLink="/profile" aria-label="Open your profile">
         <hp-avatar [src]="user.profile()?.avatarUrl" [name]="user.profile()?.displayName || auth.displayName()" [size]="38" />
       </a>
+      </div>
     </header>
 
     @if (initializing()) {
@@ -60,8 +74,16 @@
     }
   </div>
 
-  <a class="mobile-fab" routerLink="/posts/new" aria-label="Create a new post"><span aria-hidden="true">＋</span></a>
-  <nav class="bottom-nav" aria-label="Primary navigation" [style.grid-template-columns]="'repeat(' + mobileNavItems.length + ', 1fr)'">
+  @if (!composing()) {
+    <a class="mobile-fab" [class.nav-collapsed]="navCollapsed()" routerLink="/posts/new" aria-label="Create a new post">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+    </a>
+  }
+  <div class="mobile-nav-drawer" [class.is-collapsed]="navCollapsed()">
+    <button type="button" class="mobile-nav-handle" aria-controls="mobile-navigation" [attr.aria-expanded]="!navCollapsed()" [attr.aria-label]="navCollapsed() ? 'Show navigation' : 'Hide navigation'" (click)="toggleNav()" (pointerdown)="startNavGesture($event)" (pointerup)="endNavGesture($event)" (pointercancel)="cancelNavGesture()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+    </button>
+  <nav id="mobile-navigation" class="bottom-nav" aria-label="Primary navigation" [attr.inert]="navCollapsed() ? '' : null" [style.grid-template-columns]="'repeat(' + mobileNavItems.length + ', 1fr)'">
     @for (item of mobileNavItems; track item.route) {
       <a [routerLink]="item.route" routerLinkActive="is-active">
         <img class="nav-icon" [src]="item.icon" alt="" aria-hidden="true" width="64" height="64">
@@ -69,4 +91,5 @@
       </a>
     }
   </nav>
+  </div>
 </div>

@@ -1,5 +1,6 @@
 :host { display: block; margin-top: 22px; }
 .filter-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
+.filter-column { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
 .filter-group { min-width: 0; border: 1px solid var(--line); border-radius: 14px; padding: 16px; background: var(--paper); }
 summary { cursor: pointer; color: var(--sage-800); font-weight: 700; padding: 5px 0; }
 fieldset { min-width: 0; border: 0; padding: 0; margin: 20px 0 10px; }

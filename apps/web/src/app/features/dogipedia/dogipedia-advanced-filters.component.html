@@ -1,64 +1,68 @@
 <div class="filter-groups">
-  @for (group of groups; track group) {
-    <details class="filter-group" [open]="group !== 'More filters'">
-      <summary>{{ group }}</summary>
-      @for (r of ranges; track r.minKey) {
-        @if (r.group === group) {
-          <fieldset [disabled]="options()[r.metadata].min === null">
-            <legend>{{ r.label }} <span>{{ rangeLabel(r) }}</span></legend>
-            <div class="dual-range" role="group" [attr.aria-label]="r.label">
-              <div class="range-track"></div>
-              <input type="range" [min]="bounds(r)[0]" [max]="bounds(r)[1]" [step]="r.step" [value]="value(r, false)"
-                [attr.aria-label]="'Minimum ' + r.label" [attr.aria-valuetext]="value(r, false) + ' ' + r.unit"
-                [attr.aria-valuemax]="value(r, true)" (input)="setRange(r, false, $any($event.target))">
-              <input type="range" [min]="bounds(r)[0]" [max]="bounds(r)[1]" [step]="r.step" [value]="value(r, true)"
-                [attr.aria-label]="'Maximum ' + r.label" [attr.aria-valuetext]="value(r, true) + ' ' + r.unit"
-                [attr.aria-valuemin]="value(r, false)" (input)="setRange(r, true, $any($event.target))">
-            </div>
-            <div class="range-ends"><span>{{ value(r, false) }} {{ r.unit }}</span><span>{{ value(r, true) }} {{ r.unit }}</span></div>
-          </fieldset>
-        }
-      }
-      @for (f of ratings; track f.key) {
-        @if (f.group === group) {
-          <label class="threshold" [for]="f.key">{{ f.label }} <span>{{ state()[f.key] === undefined ? 'Any' : f.direction === 'min' ? state()[f.key] + '+' : state()[f.key] + ' or less' }}</span></label>
-          <input [id]="f.key" type="range" min="1" max="5" step="1" [value]="state()[f.key] ?? (f.direction === 'min' ? 1 : 5)"
-            [attr.aria-label]="(f.direction === 'min' ? 'Minimum ' : 'Maximum ') + f.label"
-            [attr.aria-valuetext]="state()[f.key] === undefined ? 'Any' : state()[f.key] + ' out of 5'"
-            (input)="setNumber(f.key, $any($event.target).value, f.direction === 'min' ? 1 : 5)">
-        }
-      }
-      @if (group === 'Care & Coat') {
-        <label class="check"><input type="checkbox" [checked]="state().hypoallergenicOnly" (change)="toggleHypoallergenic($any($event.target).checked)"> Hypoallergenic only</label>
-      }
-      @if (group === 'Size & Exercise') {
-        <label class="threshold" for="lifespan">Can typically live to at least</label>
-        <input id="lifespan" type="number" [min]="options().lifeMaxYears.min ?? 0" [max]="options().lifeMaxYears.max" step="1"
-          [value]="state().minimumLifeMaxYears ?? ''" placeholder="Any" (change)="setNumber('minimumLifeMaxYears', $any($event.target).value)">
-        <small>Years &middot; leave blank for Any</small>
-      }
-      @for (f of facets; track f.key) {
-        @if (f.group === group) {
-          <fieldset>
-            <legend>{{ f.label }}</legend>
-            @if (f.searchable) {
-              <input type="search" [attr.aria-label]="'Search ' + f.label" [placeholder]="'Search ' + f.label.toLowerCase() + '...'"
-                [value]="terms[f.key] || ''" (input)="terms[f.key] = $any($event.target).value">
-              <div class="selected" aria-live="polite">
-                @for (value of state()[f.key] || []; track value) {
-                  <button type="button" (click)="toggle(f.key, value)" [attr.aria-label]="'Remove ' + f.label + ': ' + value">{{ value }} &times;</button>
-                }
-              </div>
+  @for (column of columns; track $index) {
+    <div class="filter-column">
+      @for (group of column; track group) {
+        <details class="filter-group">
+          <summary>{{ group }}</summary>
+          @for (r of ranges; track r.minKey) {
+            @if (r.group === group) {
+              <fieldset [disabled]="options()[r.metadata].min === null">
+                <legend>{{ r.label }} <span>{{ rangeLabel(r) }}</span></legend>
+                <div class="dual-range" role="group" [attr.aria-label]="r.label">
+                  <div class="range-track"></div>
+                  <input type="range" [min]="bounds(r)[0]" [max]="bounds(r)[1]" [step]="r.step" [value]="value(r, false)"
+                    [attr.aria-label]="'Minimum ' + r.label" [attr.aria-valuetext]="value(r, false) + ' ' + r.unit"
+                    [attr.aria-valuemax]="value(r, true)" (input)="setRange(r, false, $any($event.target))">
+                  <input type="range" [min]="bounds(r)[0]" [max]="bounds(r)[1]" [step]="r.step" [value]="value(r, true)"
+                    [attr.aria-label]="'Maximum ' + r.label" [attr.aria-valuetext]="value(r, true) + ' ' + r.unit"
+                    [attr.aria-valuemin]="value(r, false)" (input)="setRange(r, true, $any($event.target))">
+                </div>
+                <div class="range-ends"><span>{{ value(r, false) }} {{ r.unit }}</span><span>{{ value(r, true) }} {{ r.unit }}</span></div>
+              </fieldset>
             }
-            <div class="choices">
-              @for (option of choices(f.key, f.searchable); track option.value) {
-                <label class="check"><input type="checkbox" [checked]="state()[f.key]?.includes(option.value)" (change)="toggle(f.key, option.value)">{{ option.label }}</label>
-              } @empty { <small>{{ f.searchable ? 'No more matching options.' : 'No options recorded.' }}</small> }
-            </div>
-            @if (f.searchable) { <small>Showing up to 12 options. Type to search the full list.</small> }
-          </fieldset>
-        }
+          }
+          @for (f of ratings; track f.key) {
+            @if (f.group === group) {
+              <label class="threshold" [for]="f.key">{{ f.label }} <span>{{ state()[f.key] === undefined ? 'Any' : f.direction === 'min' ? state()[f.key] + '+' : state()[f.key] + ' or less' }}</span></label>
+              <input [id]="f.key" type="range" min="1" max="5" step="1" [value]="state()[f.key] ?? (f.direction === 'min' ? 1 : 5)"
+                [attr.aria-label]="(f.direction === 'min' ? 'Minimum ' : 'Maximum ') + f.label"
+                [attr.aria-valuetext]="state()[f.key] === undefined ? 'Any' : state()[f.key] + ' out of 5'"
+                (input)="setNumber(f.key, $any($event.target).value, f.direction === 'min' ? 1 : 5)">
+            }
+          }
+          @if (group === 'Care & Coat') {
+            <label class="check"><input type="checkbox" [checked]="state().hypoallergenicOnly" (change)="toggleHypoallergenic($any($event.target).checked)"> Hypoallergenic only</label>
+          }
+          @if (group === 'Size & Exercise') {
+            <label class="threshold" for="lifespan">Can typically live to at least</label>
+            <input id="lifespan" type="number" [min]="options().lifeMaxYears.min ?? 0" [max]="options().lifeMaxYears.max" step="1"
+              [value]="state().minimumLifeMaxYears ?? ''" placeholder="Any" (change)="setNumber('minimumLifeMaxYears', $any($event.target).value)">
+            <small>Years &middot; leave blank for Any</small>
+          }
+          @for (f of facets; track f.key) {
+            @if (f.group === group) {
+              <fieldset>
+                <legend>{{ f.label }}</legend>
+                @if (f.searchable) {
+                  <input type="search" [attr.aria-label]="'Search ' + f.label" [placeholder]="'Search ' + f.label.toLowerCase() + '...'"
+                    [value]="terms[f.key] || ''" (input)="terms[f.key] = $any($event.target).value">
+                  <div class="selected" aria-live="polite">
+                    @for (value of state()[f.key] || []; track value) {
+                      <button type="button" (click)="toggle(f.key, value)" [attr.aria-label]="'Remove ' + f.label + ': ' + value">{{ value }} &times;</button>
+                    }
+                  </div>
+                }
+                <div class="choices">
+                  @for (option of choices(f.key, f.searchable); track option.value) {
+                    <label class="check"><input type="checkbox" [checked]="state()[f.key]?.includes(option.value)" (change)="toggle(f.key, option.value)">{{ option.label }}</label>
+                  } @empty { <small>{{ f.searchable ? 'No more matching options.' : 'No options recorded.' }}</small> }
+                </div>
+                @if (f.searchable) { <small>Showing up to 12 options. Type to search the full list.</small> }
+              </fieldset>
+            }
+          }
+        </details>
       }
-    </details>
+    </div>
   }
 </div>

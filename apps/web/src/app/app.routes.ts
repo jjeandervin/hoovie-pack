@@ -26,6 +26,11 @@ export const routes: Routes = [
     loadComponent: () => import('./layout/app-shell.component').then((m) => m.AppShellComponent),
     children: [
       {
+        path: 'tools',
+        title: 'Tools \u00b7 HooviePack',
+        loadComponent: () => import('./features/tools/tools.component').then(m => m.ToolsComponent)
+      },
+      {
         path: 'dogipedia',
         title: 'Dogipedia · HooviePack',
         loadComponent: () => import('./features/dogipedia/dogipedia.component').then(m => m.DogipediaComponent)

@@ -1,7 +1,7 @@
 <div class="page editor-page">
   <header class="editor-header">
     <a routerLink="/feed" class="icon-button" aria-label="Close post editor">×</a>
-    <div><p class="eyebrow">Family feed</p><h1>{{ editing() ? 'Edit post' : 'Share an update' }}</h1></div>
+    <div><p class="eyebrow">Family feed</p><h1><span class="desktop-share-label">{{ editing() ? 'Edit post' : 'Share an update' }}</span><span class="mobile-share-label">{{ editing() ? 'Edit post' : 'Share' }}</span></h1></div>
     <span></span>
   </header>
 
@@ -47,7 +47,8 @@
       <footer class="composer-actions">
         <a routerLink="/feed" class="button button--text">Cancel</a>
         <button type="submit" class="button button--large" [disabled]="submitting()">
-          {{ submitting() ? 'Sharing…' : editing() ? 'Save changes' : 'Share with the pack' }}
+          <span class="desktop-share-label">{{ submitting() ? 'Sharing…' : editing() ? 'Save changes' : 'Share with the pack' }}</span>
+          <span class="mobile-share-label">{{ submitting() ? 'Sharing…' : editing() ? 'Save changes' : 'Share' }}</span>
         </button>
       </footer>
     </form>

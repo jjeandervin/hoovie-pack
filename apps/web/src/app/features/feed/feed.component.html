@@ -10,7 +10,7 @@
 
   <a class="quick-composer" routerLink="/posts/new">
     <hp-avatar [src]="user.profile()?.avatarUrl" [name]="user.profile()?.displayName || 'You'" [size]="44" />
-    <span>Share an update with your family…</span>
+    <span><span class="desktop-share-label">Share an update with your family…</span><span class="mobile-share-label">Share</span></span>
     <span class="quick-composer__icon" aria-hidden="true">
       <img src="/assets/feed-post.png" alt="">
     </span>

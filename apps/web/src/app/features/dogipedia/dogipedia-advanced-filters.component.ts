@@ -10,7 +10,10 @@ export class DogipediaAdvancedFiltersComponent {
   readonly state = input.required<AdvancedFilters>();
   readonly options = input.required<FilterOptions>();
   readonly filtersChange = output<AdvancedFilters>();
-  readonly groups = ['Lifestyle & Personality', 'Family & Social', 'Care & Coat', 'Size & Exercise', 'Breed Details', 'More filters'];
+  readonly columns = [
+    ['Lifestyle & Personality', 'Care & Coat', 'Breed Details'],
+    ['Family & Social', 'Size & Exercise', 'More filters']
+  ];
   readonly ratings = ratingFilters;
   readonly facets = facets;
   readonly ranges = ranges;
