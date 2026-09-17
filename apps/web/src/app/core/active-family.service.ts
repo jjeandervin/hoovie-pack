@@ -25,7 +25,7 @@ export class ActiveFamilyService {
   load(force = false): Promise<FamilySummary[]> {
     if (this.loadPromise && !force) return this.loadPromise;
     this.loadingSignal.set(true);
-    this.loadPromise = firstValueFrom(this.api.listFamilies())
+    const pending = firstValueFrom(this.api.listFamilies())
       .then((families) => {
         this.familiesSignal.set(families);
         const savedId = this.readSavedId();
@@ -33,8 +33,16 @@ export class ActiveFamilyService {
         this.select(next?.id ?? null);
         return families;
       })
-      .finally(() => this.loadingSignal.set(false));
-    return this.loadPromise;
+      .catch((error) => {
+        // A failed load must not poison later retries or clear a newer load.
+        if (this.loadPromise === pending) this.loadPromise = undefined;
+        throw error;
+      })
+      .finally(() => {
+        if (!this.loadPromise || this.loadPromise === pending) this.loadingSignal.set(false);
+      });
+    this.loadPromise = pending;
+    return pending;
   }
 
   select(familyId: string | null): void {

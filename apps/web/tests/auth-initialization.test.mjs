@@ -100,3 +100,11 @@ test('leaves unrelated query parameters intact on ordinary routes', async (t) =>
   assert.equal(oauth.tryLogin.mock.callCount(), 0);
   assert.equal(location.search, '?code=application-code&state=filter');
 });
+
+test('concurrent unauthorized requests start one sign-in and preserve the return URL', (t) => {
+  const { auth, oauth } = setup(t, '/feed?view=family#latest');
+  auth.login('/feed?view=family#latest');
+  auth.login('/feed?view=family#latest');
+  assert.equal(oauth.initCodeFlow.mock.callCount(), 1);
+  assert.equal(auth.consumeReturnUrl(), '/feed?view=family#latest');
+});

@@ -17,7 +17,7 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
   return next(outgoing).pipe(
     catchError((error: unknown) => {
       if (error instanceof HttpErrorResponse && error.status === 401 && isApiRequest) {
-        sessionStorage.setItem('hooviepack.returnUrl', window.location.pathname + window.location.search);
+        auth.login(window.location.pathname + window.location.search + window.location.hash);
       }
       return throwError(() => error);
     })

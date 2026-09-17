@@ -13,6 +13,7 @@ const RETURN_URL_KEY = 'hooviepack.returnUrl';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
+  private signInRedirectStarted = false;
   private readonly authenticatedSignal = signal(false);
   private readonly initializedSignal = signal(false);
   private readonly authErrorSignal = signal<string | null>(null);
@@ -77,6 +78,9 @@ export class AuthService {
   }
 
   login(returnUrl = '/feed'): void {
+    // Several API requests can fail together when a session expires.
+    if (this.signInRedirectStarted) return;
+    this.signInRedirectStarted = true;
     sessionStorage.setItem(RETURN_URL_KEY, this.safeReturnUrl(returnUrl));
     this.oauth.initCodeFlow();
   }

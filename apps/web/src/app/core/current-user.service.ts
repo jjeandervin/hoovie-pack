@@ -17,13 +17,21 @@ export class CurrentUserService {
   load(force = false): Promise<UserProfile> {
     if (this.loadPromise && !force) return this.loadPromise;
     this.loadingSignal.set(true);
-    this.loadPromise = firstValueFrom(this.api.getMe())
+    const pending = firstValueFrom(this.api.getMe())
       .then((profile) => {
         this.profileSignal.set(profile);
         return profile;
       })
-      .finally(() => this.loadingSignal.set(false));
-    return this.loadPromise;
+      .catch((error) => {
+        // A failed load must not poison later retries or clear a newer load.
+        if (this.loadPromise === pending) this.loadPromise = undefined;
+        throw error;
+      })
+      .finally(() => {
+        if (!this.loadPromise || this.loadPromise === pending) this.loadingSignal.set(false);
+      });
+    this.loadPromise = pending;
+    return pending;
   }
 
   set(profile: UserProfile): void {
