@@ -25,6 +25,7 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./layout/app-shell.component').then((m) => m.AppShellComponent),
     children: [
+      { path: 'tools/fetch-quest', title: 'Fetch Quest \u00b7 HooviePack', loadComponent: () => import('./features/fetch-quest/fetch-quest-page.component').then(m => m.FetchQuestPageComponent) },
       { path: 'tools/calendar/events/new', title: 'Add event \u00b7 HooviePack', loadComponent: () => import('./features/calendar/calendar-event-form.component').then(m => m.CalendarEventFormComponent) },
       { path: 'tools/calendar/events/:eventId/edit', title: 'Edit event \u00b7 HooviePack', loadComponent: () => import('./features/calendar/calendar-event-form.component').then(m => m.CalendarEventFormComponent) },
       { path: 'tools/calendar/events/:eventId', title: 'Family event \u00b7 HooviePack', loadComponent: () => import('./features/calendar/calendar-event-detail.component').then(m => m.CalendarEventDetailComponent) },

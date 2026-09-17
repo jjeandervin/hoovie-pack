@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="16" viewBox="0 0 48 16" shape-rendering="crispEdges">
+<defs><g id="dog"><path fill="#825029" d="M4 6h8v7H4zM3 8h2v5H3zM11 8h2v5h-2z"/><path fill="#dba44b" d="M5 3h6v9H5zM4 7h8v5H4z"/><path fill="#f4c969" d="M6 3h4v5H6zM5 8h6v5H5z"/><path fill="#b67c34" d="M3 8h2v4H3zM11 8h2v4h-2z"/><path fill="#372c24" d="M5 9h1v1H5zM10 9h1v1h-1zM7 12h2v1H7z"/><path fill="#ffe0a0" d="M6 11h4v1H6z"/></g></defs>
+<use href="#dog"/><path fill="#dba44b" d="M7 1h2v3H7zM5 13h2v2H5zM9 13h2v2H9z"/>
+<g transform="translate(16)"><use href="#dog"/><path fill="#dba44b" d="M6 1h2v1H6zM7 2h2v2H7zM5 13h2v1H5zM9 13h2v3H9z"/></g>
+<g transform="translate(32)"><use href="#dog"/><path fill="#dba44b" d="M8 1h2v1H8zM7 2h2v2H7zM5 13h2v3H5zM9 13h2v1H9z"/></g>
+</svg>

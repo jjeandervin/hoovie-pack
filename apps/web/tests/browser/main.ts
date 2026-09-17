@@ -1,4 +1,5 @@
 import '@angular/compiler';
+import { FetchQuestPageComponent } from '../../src/app/features/fetch-quest/fetch-quest-page.component';
 import { ProfileComponent } from '../../src/app/features/profile/profile.component';
 import { MemberDetailComponent } from '../../src/app/features/family/member-detail.component';
 import { CalendarPageComponent } from '../../src/app/features/calendar/calendar-page.component';
@@ -51,6 +52,7 @@ bootstrapApplication(TestRoot, {
         { path: 'tools/calendar/events/:eventId', component: CalendarEventDetailComponent },
         { path: 'tools/calendar', component: CalendarPageComponent },
         { path: 'tools', component: ToolsComponent },
+        { path: 'tools/fetch-quest', component: FetchQuestPageComponent },
         { path: 'dogipedia', component: DogipediaComponent },
         { path: 'dogipedia/breeds/:id', component: BreedDetailComponent }
       ] }

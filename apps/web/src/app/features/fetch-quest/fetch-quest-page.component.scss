@@ -1,0 +1,25 @@
+:host { display: block; min-width: 0; }
+.quest-page { max-width: 850px; margin-inline: auto; }
+.page-heading { margin-top: 20px; }
+.game-shell { max-width: 620px; margin: auto; padding: clamp(12px, 3vw, 26px); border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--paper); box-shadow: var(--shadow-sm); }
+.game-top { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px; font-size: .85rem; }
+.game-top span, .help, dt { color: var(--muted); }
+.hud { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; text-align: center; margin: 18px 0; }
+dt { font-size: .75rem; } dd { margin: 4px 0 0; font-size: 1.15rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+canvas { display: block; width: 100%; height: auto; aspect-ratio: 1; image-rendering: pixelated; border-radius: 6px; cursor: pointer; }
+canvas:focus-visible, button:focus-visible { outline: 3px solid #ae682e; outline-offset: 4px; }
+.help { font-size: .76rem; line-height: 1.6; text-align: center; margin: 12px 0; }
+.status { font-size: .8rem; text-align: center; min-height: 2.8em; }
+.dpad { display: grid; grid-template: repeat(2, 48px) / repeat(3, 52px); gap: 6px; justify-content: center; margin: 16px auto 22px; }
+.dpad button { border: 1px solid var(--line); border-radius: 12px; background: #edf1e5; color: #284d36; font-size: 20px; cursor: pointer; touch-action: manipulation; user-select: none; }
+.dpad button:active { background: #c8d9b6; transform: translateY(1px); }
+.dpad button:disabled { opacity: .45; cursor: default; }
+.up { grid-area: 1 / 2; } .left { grid-area: 2 / 1; } .down { grid-area: 2 / 2; } .right { grid-area: 2 / 3; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.actions button { min-height: 44px; touch-action: manipulation; }
+dialog { width: min(420px, calc(100vw - 32px)); box-sizing: border-box; padding: 26px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--paper); color: var(--ink); text-align: center; }
+dialog::backdrop { background: #19372599; }
+dialog h2 { margin: 8px 0; } dialog p { line-height: 1.6; }
+.happy-ball { margin: 0 auto 16px; image-rendering: pixelated; animation: bounce .8s ease-in-out infinite alternate; }
+@keyframes bounce { to { transform: translateY(-8px) rotate(12deg); } }
+@media (prefers-reduced-motion: reduce) { .happy-ball { animation: none; } }

@@ -1,0 +1,35 @@
+﻿<div class="page quest-page">
+  <a routerLink="/tools" class="text-link">&larr; Back to tools</a>
+  <header class="page-heading">
+    <div><p class="eyebrow">A little adventure for your inner good dog</p>
+      <h1>Fetch Quest</h1><p>Follow your nose. Find the ball. Treats are a bonus.</p></div>
+  </header>
+  <section class="game-shell" aria-label="Fetch Quest">
+    <div class="game-top"><strong>Level {{ state().level }}</strong><span>{{ state().maze.cells.length }} &times; {{ state().maze.cells.length }} garden maze</span></div>
+    <dl class="hud">
+      <div><dt>Treats</dt><dd>{{ state().collectedTreats }} / {{ state().totalTreats }}</dd></div>
+      <div><dt>Time</dt><dd>{{ time() }}</dd></div>
+      <div><dt>Moves</dt><dd>{{ state().moves }}</dd></div>
+    </dl>
+    @if (error()) { <p role="alert">{{ error() }}</p> }
+    <canvas #board tabindex="0" width="264" height="264" aria-label="Fetch Quest maze game. Use arrow keys or WASD to guide the Golden Retriever to the tennis ball." aria-describedby="quest-help">Fetch Quest requires a browser with canvas support.</canvas>
+    <p id="quest-help" class="help">Click or focus the maze, then use <strong>arrow keys / WASD</strong>, or tap the controls below. Each press moves one square.</p>
+    <p class="status" aria-live="polite">{{ state().status === 'ready' ? 'Ready, pup? Your first step starts the clock.' : state().status === 'completed' ? 'Good dog! You found the tennis ball.' : 'Sniff out the tennis ball. Collect any treats along the way!' }}</p>
+    <div class="dpad" aria-label="Movement controls">
+      <button class="up" aria-label="Move up" [disabled]="state().status === 'completed'" (click)="move('up')">&#9650;</button>
+      <button class="left" aria-label="Move left" [disabled]="state().status === 'completed'" (click)="move('left')">&#9664;</button>
+      <button class="down" aria-label="Move down" [disabled]="state().status === 'completed'" (click)="move('down')">&#9660;</button>
+      <button class="right" aria-label="Move right" [disabled]="state().status === 'completed'" (click)="move('right')">&#9654;</button>
+    </div>
+    <div class="actions"><button class="button button--secondary" (click)="reset('restart')">Restart Maze</button><button class="button button--secondary" (click)="reset('new')">New Maze</button></div>
+    <p class="help">Restart replays this maze. New Maze grows a fresh garden at the same level.</p>
+  </section>
+  <dialog #victory aria-labelledby="victory-title" (cancel)="$event.preventDefault()">
+    <img class="happy-ball" src="/assets/games/fetch-quest/tennis-ball.svg" width="72" height="72" alt="">
+    <p class="eyebrow">Good dog!</p><h2 id="victory-title">Maze complete</h2>
+    <p>You brought the ball home. Ready for another adventure?</p>
+    <dl class="hud"><div><dt>Treats</dt><dd>{{ state().collectedTreats }} / {{ state().totalTreats }}</dd></div><div><dt>Time</dt><dd>{{ time() }}</dd></div><div><dt>Moves</dt><dd>{{ state().moves }}</dd></div></dl>
+    <div class="actions"><button class="button" autofocus (click)="reset('next')">Next Maze</button><button class="button button--secondary" (click)="reset('restart')">Replay Level</button></div>
+  </dialog>
+</div>
+

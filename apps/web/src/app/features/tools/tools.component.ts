@@ -15,6 +15,12 @@ import { RouterLink } from '@angular/router';
         </div>
       </header>
       <div class="tools-grid">
+        <a class="tool-card" routerLink="/tools/fetch-quest">
+          <img src="/assets/fetch-quest.svg" width="88" height="88" alt="" aria-hidden="true">
+          <h2>Fetch Quest</h2>
+          <p>Help a Golden Retriever make it through the maze, collect treats, and find the tennis ball.</p>
+          <span class="text-link">Play Fetch Quest <span aria-hidden="true">&rarr;</span></span>
+        </a>
         <a class="tool-card" routerLink="/tools/calendar">
           <img src="/assets/family-calendar.svg" width="88" height="88" alt="" aria-hidden="true">
           <h2>Family Calendar</h2>

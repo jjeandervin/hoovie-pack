@@ -16,7 +16,7 @@ createServer(async (request, response) => {
   const path = new URL(request.url, 'http://localhost').pathname;
   if (path === '/app.js') { response.setHeader('Content-Type', 'text/javascript'); response.end(result.outputFiles[0].contents); return; }
   if (path === '/styles.css') { response.setHeader('Content-Type', 'text/css'); response.end(await readFile(resolve(root, 'src/styles.css'))); return; }
-  if (/^\/assets\/[a-z0-9-]+\.(svg|png)$/.test(path)) {
+  if (/^\/assets\/(games\/fetch-quest\/)?[a-z0-9-]+\.(svg|png)$/.test(path)) {
     response.setHeader('Content-Type', path.endsWith('.svg') ? 'image/svg+xml' : 'image/png');
     try { response.end(await readFile(resolve(root, 'public' + path))); }
     catch { response.statusCode = 404; response.end(); }
