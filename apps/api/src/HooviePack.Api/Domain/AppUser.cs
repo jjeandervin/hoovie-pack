@@ -10,6 +10,7 @@ public sealed class AppUser : Entity
     public string? AvatarStoragePath { get; set; }
     public string? AvatarContentType { get; set; }
     public string? Bio { get; set; }
+    public DateOnly? BirthDate { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset LastSeenAt { get; set; } = DateTimeOffset.UtcNow;

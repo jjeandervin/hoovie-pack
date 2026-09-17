@@ -9,4 +9,6 @@ public sealed class UpdateProfileRequest
 
     [StringLength(500)]
     public string? Bio { get; set; }
+
+    public DateOnly? BirthDate { get; set; }
 }

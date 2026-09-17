@@ -15,6 +15,12 @@ import { RouterLink } from '@angular/router';
         </div>
       </header>
       <div class="tools-grid">
+        <a class="tool-card" routerLink="/tools/calendar">
+          <img src="/assets/family-calendar.svg" width="88" height="88" alt="" aria-hidden="true">
+          <h2>Family Calendar</h2>
+          <p>Keep track of family events, important dates, and memories from years past.</p>
+          <span class="text-link">Open calendar <span aria-hidden="true">&rarr;</span></span>
+        </a>
         <a class="tool-card" routerLink="/dogipedia">
           <img src="/assets/dogipedia.svg" width="88" height="88" alt="" aria-hidden="true">
           <h2>Dogipedia</h2>

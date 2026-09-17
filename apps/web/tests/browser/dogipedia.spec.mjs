@@ -125,7 +125,8 @@ test('desktop and mobile layouts remain usable without horizontal overflow', asy
     await page.setViewportSize({ width, height: 900 });
     await page.goto('/dogipedia');
     await expect(page.getByRole('heading', { name: 'Akita', exact: true })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Dogipedia', exact: true })).toBeVisible();
+    // Dogipedia and Family Calendar are reached through the shared Tools entry.
+    await expect(page.getByRole('link', { name: 'Tools', exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await page.screenshot({ path: testInfo.outputPath(`browse-${width}.png`), fullPage: true });
     await page.getByRole('link', { name: /Pembroke Welsh Corgi/ }).click();

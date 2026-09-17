@@ -42,6 +42,7 @@ public sealed class ProfileService(
 
         user.DisplayName = displayName;
         user.Bio = Normalize(request.Bio);
+        user.BirthDate = request.BirthDate;
         user.UpdatedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
         return MapMe(user);
@@ -119,7 +120,8 @@ public sealed class ProfileService(
         user.AvatarUrl,
         user.Bio,
         user.CreatedAt,
-        user.LastSeenAt);
+        user.LastSeenAt,
+        user.BirthDate);
 
     private static string? Normalize(string? value)
     {

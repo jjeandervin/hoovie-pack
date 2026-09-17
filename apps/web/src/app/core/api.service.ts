@@ -41,8 +41,8 @@ export class ApiService {
     return this.http.get<UserProfile>(`${this.baseUrl}/me`);
   }
 
-  updateMe(displayName: string, bio: string, avatar?: File): Observable<UserProfile> {
-    return this.http.put<UserProfile>(`${this.baseUrl}/me`, { displayName, bio }).pipe(
+  updateMe(displayName: string, bio: string, avatar?: File, birthDate: string | null = null): Observable<UserProfile> {
+    return this.http.put<UserProfile>(`${this.baseUrl}/me`, { displayName, bio, birthDate }).pipe(
       switchMap((profile) => {
         if (!avatar) return of(profile);
         return this.uploadFile(avatar, 'avatar').pipe(
@@ -198,7 +198,7 @@ export class ApiService {
     return this.http.delete<ApiReactionSummary>(`${this.baseUrl}/posts/${postId}/reactions/${type}`).pipe(map(mapReactions));
   }
 
-  private uploadFile(file: File, purpose: FileUploadPurpose, familyId?: string): Observable<FileReference> {
+  uploadFile(file: File, purpose: FileUploadPurpose, familyId?: string): Observable<FileReference> {
     const request: FileUploadRequest = {
       fileName: file.name,
       contentType: file.type,

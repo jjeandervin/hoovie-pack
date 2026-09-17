@@ -1,6 +1,6 @@
 export type MembershipRole = 'Owner' | 'Admin' | 'Member';
 export type ReactionType = 'paw' | 'heart' | 'bone';
-export type FileUploadPurpose = 'avatar' | 'dogPhoto' | 'postPhoto';
+export type FileUploadPurpose = 'avatar' | 'dogPhoto' | 'postPhoto' | 'calendarPhoto';
 
 export interface FileReference {
   fileId: string;
@@ -28,6 +28,7 @@ export interface FileDownloadResponse {
 }
 
 export interface UserProfile {
+  birthDate?: string | null;
   id: string;
   authProviderUserId?: string;
   email: string;

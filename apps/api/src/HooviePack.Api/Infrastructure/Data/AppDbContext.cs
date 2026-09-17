@@ -5,6 +5,8 @@ namespace HooviePack.Api.Infrastructure.Data;
 
 public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
+    public DbSet<CalendarEvent> CalendarEvents => Set<CalendarEvent>();
+    public DbSet<CalendarEventPhoto> CalendarEventPhotos => Set<CalendarEventPhoto>();
     public DbSet<DogQuote> DogQuotes => Set<DogQuote>();
     public DbSet<DogipediaBreed> DogipediaBreeds => Set<DogipediaBreed>();
     public DbSet<DogipediaBreedGroup> DogipediaBreedGroups => Set<DogipediaBreedGroup>();
@@ -50,6 +52,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.ConfigureDogipedia();
+        modelBuilder.ConfigureCalendar();
         modelBuilder.ApplyConfiguration(new DogQuoteConfiguration());
 
         modelBuilder.Entity<AppUser>(entity =>

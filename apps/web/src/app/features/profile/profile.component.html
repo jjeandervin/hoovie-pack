@@ -32,6 +32,7 @@
         <section class="settings-card stack-form">
           <div class="settings-card__heading"><span aria-hidden="true">✎</span><div><h2>About you</h2><p>This is visible only to families you belong to.</p></div></div>
           <div class="field"><label for="profile-name">Display name</label><input id="profile-name" formControlName="displayName" maxlength="80" autocomplete="name">@if (showError('displayName')) { <p class="field-error">Enter a display name between 2 and 80 characters.</p> }</div>
+          <div class="field"><label for="profile-birthday">Birthday <span>Optional</span></label><input id="profile-birthday" type="date" formControlName="birthDate" autocomplete="bday"><small>Appears on your families' calendars each year. Clear this field to remove it.</small></div>
           <div class="field"><label for="profile-email">Email</label><input id="profile-email" [value]="user.profile()?.email || ''" disabled><small>Your email comes from secure sign-in and cannot be changed here.</small></div>
           <div class="field"><label for="profile-bio">Short bio <span>Optional</span></label><textarea id="profile-bio" formControlName="bio" rows="4" maxlength="280" placeholder="Family role, current adventure, or favorite way to spend a Sunday…"></textarea><small>{{ form.controls.bio.value.length }}/280</small></div>
           @if (saveError()) { <div class="alert alert--error" role="alert"><span>!</span><p>{{ saveError() }}</p></div> }

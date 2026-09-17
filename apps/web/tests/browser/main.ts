@@ -1,4 +1,9 @@
 import '@angular/compiler';
+import { ProfileComponent } from '../../src/app/features/profile/profile.component';
+import { MemberDetailComponent } from '../../src/app/features/family/member-detail.component';
+import { CalendarPageComponent } from '../../src/app/features/calendar/calendar-page.component';
+import { CalendarEventFormComponent } from '../../src/app/features/calendar/calendar-event-form.component';
+import { CalendarEventDetailComponent } from '../../src/app/features/calendar/calendar-event-detail.component';
 import { Component } from '@angular/core';
 import { bootstrapApplication } from '@angular/platform-browser';
 import { provideHttpClient } from '@angular/common/http';
@@ -29,16 +34,22 @@ bootstrapApplication(TestRoot, {
       families: () => [{ id: 'pack', name: 'The Hoovie family' }],
       activeId: () => 'pack', activeFamily: () => ({ id: 'pack', name: 'The Hoovie family' })
     } },
-    { provide: CurrentUserService, useValue: { load: async () => ({}), profile: () => ({ displayName: 'Jamie' }) } },
+    { provide: CurrentUserService, useValue: { load: async () => ({}), profile: () => ({ id: 'jamie', displayName: 'Jamie' }) } },
     { provide: AuthService, useValue: { displayName: () => 'Jamie', logout: () => {} } },
     provideRouter([
       { path: '', component: AppShellComponent, children: [
+        { path: 'profile', component: ProfileComponent, providers: [CurrentUserService] },
+        { path: 'members/:memberId', component: MemberDetailComponent },
         { path: 'feed', component: FeedComponent },
         { path: 'posts/new', component: PostEditorComponent },
         { path: 'posts/:postId/edit', component: PostEditorComponent },
         { path: 'dogs/new', component: DogEditorComponent },
         { path: 'dogs/:dogId/edit', component: DogEditorComponent },
         { path: 'dogs/:dogId', component: DogDetailComponent },
+        { path: 'tools/calendar/events/new', component: CalendarEventFormComponent },
+        { path: 'tools/calendar/events/:eventId/edit', component: CalendarEventFormComponent },
+        { path: 'tools/calendar/events/:eventId', component: CalendarEventDetailComponent },
+        { path: 'tools/calendar', component: CalendarPageComponent },
         { path: 'tools', component: ToolsComponent },
         { path: 'dogipedia', component: DogipediaComponent },
         { path: 'dogipedia/breeds/:id', component: BreedDetailComponent }

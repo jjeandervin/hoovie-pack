@@ -10,6 +10,7 @@
       <hp-avatar [src]="member()!.avatarUrl" [name]="member()!.displayName" [size]="112" />
       <div><span class="role-badge">{{ member()!.role }}</span><h1>{{ member()!.displayName }}</h1><p>{{ member()!.bio || 'A loved member of ' + families.activeFamily()?.name + '.' }}</p>@if (member()!.joinedAt) { <small>In the pack since {{ joinedDate(member()!.joinedAt!) }}</small> }</div>
     </article>
+    @if (member()!.userId === currentUser.profile()?.id) { <a class="button" routerLink="/profile">Edit profile</a> }
     <section class="detail-card">
       <p class="eyebrow">Family connection</p>
       <h2>Part of {{ families.activeFamily()?.name }}</h2>

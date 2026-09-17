@@ -25,6 +25,10 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./layout/app-shell.component').then((m) => m.AppShellComponent),
     children: [
+      { path: 'tools/calendar/events/new', title: 'Add event \u00b7 HooviePack', loadComponent: () => import('./features/calendar/calendar-event-form.component').then(m => m.CalendarEventFormComponent) },
+      { path: 'tools/calendar/events/:eventId/edit', title: 'Edit event \u00b7 HooviePack', loadComponent: () => import('./features/calendar/calendar-event-form.component').then(m => m.CalendarEventFormComponent) },
+      { path: 'tools/calendar/events/:eventId', title: 'Family event \u00b7 HooviePack', loadComponent: () => import('./features/calendar/calendar-event-detail.component').then(m => m.CalendarEventDetailComponent) },
+      { path: 'tools/calendar', title: 'Family Calendar \u00b7 HooviePack', loadComponent: () => import('./features/calendar/calendar-page.component').then(m => m.CalendarPageComponent) },
       {
         path: 'tools',
         title: 'Tools \u00b7 HooviePack',

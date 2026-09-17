@@ -1,0 +1,30 @@
+<div class="page calendar-page">
+  <a routerLink="/tools/calendar" class="text-link">&larr; Family Calendar</a>
+  @if (error()) { <p role="alert">{{ error() }}</p> @if (!event()) { <button (click)="refresh.set(refresh() + 1)">Try again</button> } }
+  @if (loading()) { <p role="status">Loading event...</p> }
+  @if (event(); as e) {
+    <header class="page-heading"><div><p class="eyebrow">{{ e.eventType }}</p><h1>{{ e.title }}</h1><p>{{ localDate(e.startDate) | date:'longDate' }} @if (e.endDate) { &ndash; {{ localDate(e.endDate) | date:'longDate' }} }</p>
+      @if (e.isAllDay) { <p>All day</p> } @else { <p>{{ e.startTime?.slice(0, 5) }} @if (e.endTime) { &ndash; {{ e.endTime.slice(0, 5) }} } &middot; {{ e.timeZoneId }}</p> }
+      @if (e.location) { <p>Location: {{ e.location }}</p> }
+    </div></header>
+    @if (e.canManage) {
+      <div class="calendar-toolbar"><a class="button" [routerLink]="['/tools/calendar/events', e.id, 'edit']">Edit event</a><button [disabled]="busy()" (click)="confirmDelete.set(true)">Delete event</button></div>
+      @if (confirmDelete()) { <div role="alert"><p>Delete this event and all its attached photos? This cannot be undone.</p><button [disabled]="busy()" (click)="action('delete')">Yes, delete event</button> <button (click)="confirmDelete.set(false)">Keep event</button></div> }
+    }
+    <p class="event-description">{{ e.description }}</p>
+    <p class="muted">Added by {{ e.createdBy.displayName }} &middot; Created {{ e.createdAtUtc | date:'medium' }}</p>
+    <section aria-label="Event photos"><h2>Photos</h2>
+      <div class="photo-gallery">@for (photo of e.photos; track photo.id) {
+        <div><button class="photo-open" (click)="selectedPhoto.set(photo); viewer.showModal()" aria-label="Enlarge event photo"><img [hpAuthImage]="photo.url" [alt]="e.title + ' photo'" loading="lazy"></button>
+          @if (photo.isCover) { <p class="muted">Cover photo</p> }
+          @if (e.canManage) { @if (!photo.isCover) { <button [disabled]="busy()" (click)="action('cover', photo)">Use as cover</button> } <button [disabled]="busy()" (click)="action('remove', photo)">Remove photo</button> }
+        </div>
+      } @empty { <p class="muted">No photos attached yet.</p> }</div>
+      @if (e.canManage) {
+        @for (key of [uploaderKey()]; track key) { <hp-image-uploader [maxFiles]="100" [disabled]="busy()" (filesChange)="photos.set($event)" /> }
+        <button class="button button-primary" [disabled]="busy() || !photos().length" (click)="upload()">{{ busy() ? 'Saving...' : 'Attach photos' }}</button>
+      }
+    </section>
+  }
+  <dialog #viewer aria-label="Enlarged event photo" (close)="selectedPhoto.set(null)"><button (click)="viewer.close()" autofocus>Close photo</button>@if (selectedPhoto(); as photo) { <img [hpAuthImage]="photo.url" alt="Enlarged event photo"> }</dialog>
+</div>

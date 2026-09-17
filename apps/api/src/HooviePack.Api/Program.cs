@@ -165,6 +165,7 @@ builder.Services.AddScoped<IFamilyService, FamilyService>();
 builder.Services.AddScoped<IDogService, DogService>();
 builder.Services.AddScoped<IDogQuoteService, DogQuoteService>();
 builder.Services.AddScoped<IPostService, PostService>();
+builder.Services.AddScoped<CalendarService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<IReactionService, ReactionService>();
 builder.Services.AddScoped<IMediaService, MediaService>();

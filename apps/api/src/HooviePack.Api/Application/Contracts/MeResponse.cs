@@ -7,4 +7,5 @@ public sealed record MeResponse(
     string? AvatarUrl,
     string? Bio,
     DateTimeOffset CreatedAt,
-    DateTimeOffset LastSeenAt);
+    DateTimeOffset LastSeenAt,
+    DateOnly? BirthDate = null);

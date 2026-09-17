@@ -227,7 +227,9 @@ public sealed class DogQuoteTests
                 sql, new string('x', length + 1)));
             Assert.Equal(PostgresErrorCodes.StringDataRightTruncation, error.SqlState);
         }
-        var previous = (await db.Database.GetAppliedMigrationsAsync()).Reverse().Skip(1).First();
+        // Roll back the quotes migration even when newer features add migrations.
+        var previous = (await db.Database.GetAppliedMigrationsAsync())
+            .TakeWhile(migration => !migration.EndsWith("_AddDogQuotes", StringComparison.Ordinal)).Last();
         await db.GetService<IMigrator>().MigrateAsync(previous);
         await db.Database.MigrateAsync();
         Assert.Empty(await db.DogQuotes.AsNoTracking().ToListAsync());

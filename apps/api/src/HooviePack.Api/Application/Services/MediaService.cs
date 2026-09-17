@@ -52,6 +52,7 @@ public sealed class MediaService(
                 break;
             case UploadPurpose.DogPhoto:
             case UploadPurpose.PostPhoto:
+            case UploadPurpose.CalendarPhoto:
                 if (request.FamilyId is not { } familyId || familyId == Guid.Empty)
                 {
                     throw ApiException.BadRequest("A family is required for this upload.", "familyId");

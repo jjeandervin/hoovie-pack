@@ -27,6 +27,7 @@ export class ProfileComponent implements OnInit {
   readonly avatar = signal<File | undefined>(undefined);
   readonly previewUrl = signal<string | null>(null);
   readonly form = new FormGroup({
+    birthDate: new FormControl('', { nonNullable: true }),
     displayName: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.minLength(2), Validators.maxLength(80)] }),
     bio: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(280)] })
   });
@@ -46,7 +47,7 @@ export class ProfileComponent implements OnInit {
     this.loading.set(true);
     this.loadError.set('');
     void this.user.load(true).then((profile) => {
-      this.form.setValue({ displayName: profile.displayName || '', bio: profile.bio || '' });
+      this.form.setValue({ birthDate: profile.birthDate || '', displayName: profile.displayName || '', bio: profile.bio || '' });
     }).catch((error) => this.loadError.set(apiErrorMessage(error, 'Your profile is unavailable right now.')))
       .finally(() => this.loading.set(false));
   }
@@ -59,7 +60,7 @@ export class ProfileComponent implements OnInit {
     const value = this.form.getRawValue();
     this.saving.set(true);
     this.saveError.set('');
-    this.api.updateMe(value.displayName.trim(), value.bio.trim(), this.avatar()).pipe(
+    this.api.updateMe(value.displayName.trim(), value.bio.trim(), this.avatar(), value.birthDate || null).pipe(
       finalize(() => this.saving.set(false))
     ).subscribe({
       next: (profile) => {

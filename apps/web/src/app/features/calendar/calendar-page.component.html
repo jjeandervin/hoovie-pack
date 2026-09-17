@@ -1,0 +1,55 @@
+<div class="page calendar-page">
+  <a routerLink="/tools" class="text-link">&larr; Tools</a>
+  <header class="page-heading page-heading--actions"><div><p class="eyebrow">Plans ahead. Memories behind.</p><h1>Family Calendar</h1><p>Important days and everyday moments with your pack.</p></div>
+    @if (families.activeId()) { <a class="button button-primary" routerLink="/tools/calendar/events/new" [queryParams]="{ date: selected() }">+ Add Event</a> }
+  </header>
+  @if (!families.activeId()) { <p>Choose a family to open its calendar.</p> } @else {
+    <nav class="calendar-toolbar" aria-label="Calendar views">
+      <button type="button" [attr.aria-pressed]="view() === 'calendar'" (click)="switchView('calendar')">Calendar</button>
+      <button type="button" [attr.aria-pressed]="view() === 'timeline'" (click)="switchView('timeline')">Timeline / List</button>
+    </nav>
+    @if (view() === 'calendar') {
+      <div class="calendar-toolbar">
+        <button type="button" aria-label="Previous month" (click)="move(-1)">&larr;</button>
+        <h2>{{ localDate(month() + '-01') | date:'MMMM yyyy' }}</h2>
+        <button type="button" aria-label="Next month" (click)="move(1)">&rarr;</button>
+        <button type="button" (click)="goToday()">Today</button>
+        <label>Jump to month <input type="month" [ngModel]="month()" (ngModelChange)="changeMonth($event)"></label>
+      </div>
+    } @else {
+      <label>Browse <select [ngModel]="direction()" (ngModelChange)="switchDirection($event)"><option value="upcoming">Upcoming - soonest first</option><option value="history">History - newest first</option></select></label>
+    }
+    @if (error()) { <p role="alert">{{ error() }} <button (click)="refresh.set(refresh() + 1)">Try again</button></p> }
+    @if (loading()) { <p role="status">Loading events...</p> }
+    @if (view() === 'calendar') {
+      <div class="month-grid" [attr.aria-busy]="loading()">
+        @for (day of ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']; track day) { <div class="weekday">{{ day }}</div> }
+        @for (day of days(); track $index) {
+          @if (!day) { <div class="empty-day"></div> } @else {
+            <div class="calendar-day" [class.selected]="selected() === day" [class.today]="today === day">
+              <button class="day-select" [attr.aria-label]="day + ', ' + onDay(day).length + ' events'" [attr.aria-pressed]="selected() === day" (click)="selected.set(day)">{{ +day.slice(8) }}
+                @if (onDay(day).length) { <span class="mobile-count">{{ onDay(day).length }}<span class="sr-only"> events</span></span> }
+              </button>
+              <div class="desktop-events">@for (event of onDay(day).slice(0, 3); track event.id) {
+                <a [routerLink]="itemLink(event)">@if (event.imageUrl) { <img class="calendar-item-image" [hpAuthImage]="event.imageUrl" alt="" loading="lazy"> } {{ itemIcon(event) }} {{ event.title }} @if(event.photos.length) { <span aria-label="Has photos">&#128247;</span> }</a>
+              } @if (onDay(day).length > 3) { <button (click)="selected.set(day)">+{{ onDay(day).length - 3 }} more</button> }</div>
+            </div>
+          }
+        }
+      </div>
+      <section class="day-agenda" aria-label="Selected day events">
+        <div class="calendar-toolbar"><h2>{{ localDate(selected()) | date:'MMMM d, yyyy' }}</h2><a class="text-link" routerLink="/tools/calendar/events/new" [queryParams]="{ date: selected() }">+ Add event on this date</a></div>
+        @for (event of selectedEvents(); track event.id) {
+          <a class="event-row" [routerLink]="itemLink(event)"><strong>@if (event.imageUrl) { <img class="calendar-item-image" [hpAuthImage]="event.imageUrl" alt="" loading="lazy"> } {{ itemIcon(event) }} {{ event.title }}</strong><span>{{ event.eventType }} &middot; {{ event.isAllDay ? 'All day' : event.startTime?.slice(0, 5) }} @if(event.photos.length) { &middot; &#128247; {{ event.photos.length }} photos }</span></a>
+        } @empty { @if (!loading() && !error()) { <p class="muted">No events on this day. Make a plan or add a memory.</p> } }
+      </section>
+    } @else {
+      @for (group of groups(); track group.month) {
+        <section><h2>{{ localDate(group.month + '-01') | date:'MMMM yyyy' }}</h2>
+          @for (event of group.events; track event.id) { <a class="event-row" [routerLink]="itemLink(event)"><strong>@if (event.imageUrl) { <img class="calendar-item-image" [hpAuthImage]="event.imageUrl" alt="" loading="lazy"> } {{ itemIcon(event) }} {{ event.title }}</strong><span>{{ localDate(event.startDate) | date:'MMM d, yyyy' }} @if(event.endDate) { &ndash; {{ localDate(event.endDate) | date:'MMM d, yyyy' }} } &middot; {{ event.eventType }} @if(event.photos.length) { &middot; &#128247; {{ event.photos.length }} photos }</span></a> }
+        </section>
+      } @empty { @if (!loading() && !error()) { <p>No {{ direction() === 'history' ? 'historical' : 'upcoming' }} events yet.</p> } }
+      <nav class="calendar-toolbar" aria-label="Timeline pages"><button [disabled]="page() <= 1 || loading()" (click)="page.set(page() - 1)">Previous</button><span>Page {{ page() }} of {{ totalPages() || 1 }}</span><button [disabled]="page() >= totalPages() || loading()" (click)="page.set(page() + 1)">Next</button></nav>
+    }
+  }
+</div>

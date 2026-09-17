@@ -30,7 +30,8 @@ internal static class MediaFileOperations
             return;
         }
 
-        var isAssociated = await db.Users.AnyAsync(x =>
+        var isAssociated = await db.CalendarEventPhotos.AnyAsync(x => ids.Contains(x.FileId), cancellationToken) ||
+            await db.Users.AnyAsync(x =>
                 x.AvatarFileId != null && ids.Contains(x.AvatarFileId.Value), cancellationToken) ||
             await db.DogProfiles.AnyAsync(x =>
                 x.PhotoFileId != null && ids.Contains(x.PhotoFileId.Value), cancellationToken) ||

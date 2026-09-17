@@ -1,0 +1,24 @@
+<div class="page calendar-page">
+  <a routerLink="/tools/calendar" class="text-link">&larr; Family Calendar</a>
+  <header class="page-heading"><div><p class="eyebrow">Every date has a story</p><h1>{{ editing ? 'Edit event' : 'Add an event' }}</h1><p>Plan something new or remember a day from years ago.</p></div></header>
+  @if (error()) { <p role="alert">{{ error() }}</p> }
+  @if (loading()) { <p role="status">Loading event...</p> }
+  @if (!families.activeId()) { <p>Choose a family to add an event.</p> }
+  @if (!loading() && canManage() && families.activeId()) {
+    <form class="calendar-form" [formGroup]="form" (ngSubmit)="save()">
+      <fieldset [disabled]="saving()" style="border: 0; padding: 0; display: contents">
+        <label>Title <input formControlName="title" maxlength="200" required></label>
+        <div class="form-pair"><label>Start date <input type="date" formControlName="startDate" required></label><label>End date (optional) <input type="date" formControlName="endDate"></label></div>
+        <label class="check"><input type="checkbox" formControlName="isAllDay"> All day</label>
+        @if (!form.controls.isAllDay.value) {
+          <div class="form-pair"><label>Start time <input type="time" formControlName="startTime" required></label><label>End time (optional) <input type="time" formControlName="endTime"></label></div>
+          <label>Time zone <input formControlName="timeZoneId" required maxlength="100"></label>
+        }
+        <div class="form-pair"><label>Event type <select formControlName="eventType">@for (type of eventTypes; track type) { <option [value]="type">{{ type }}</option> }</select></label><label>Location (optional) <input formControlName="location" maxlength="500"></label></div>
+        <label>Description (optional) <textarea formControlName="description" rows="6"></textarea></label>
+        <section><h2>Add photos</h2><p>Choose photos now, or add more from the event page later.</p><hp-image-uploader [maxFiles]="100" [disabled]="saving()" (filesChange)="photos.set($event)" /></section>
+        <div class="calendar-toolbar"><button type="submit" class="button button-primary" [disabled]="saving()">{{ saving() ? 'Saving...' : 'Save event' }}</button><a routerLink="/tools/calendar">Cancel</a></div>
+      </fieldset>
+    </form>
+  } @else if (!loading() && !error() && families.activeId()) { <p>You do not have permission to edit this event.</p> }
+</div>

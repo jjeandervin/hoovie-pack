@@ -5,5 +5,6 @@ public enum UploadPurpose
     Unknown,
     Avatar,
     DogPhoto,
-    PostPhoto
+    PostPhoto,
+    CalendarPhoto
 }

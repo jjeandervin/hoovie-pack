@@ -4,6 +4,7 @@ import { finalize } from 'rxjs';
 import { ActiveFamilyService } from '../../core/active-family.service';
 import { ApiService } from '../../core/api.service';
 import { apiErrorMessage } from '../../core/api-error';
+import { CurrentUserService } from '../../core/current-user.service';
 import { FamilyMember } from '../../core/models';
 import { AvatarComponent } from '../../shared/avatar.component';
 import { UiStateComponent } from '../../shared/ui-state.component';
@@ -22,6 +23,7 @@ export class MemberDetailComponent implements OnInit {
 
   constructor(
     readonly families: ActiveFamilyService,
+    readonly currentUser: CurrentUserService,
     private readonly api: ApiService,
     private readonly route: ActivatedRoute,
     private readonly router: Router
