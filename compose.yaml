@@ -70,9 +70,8 @@ services:
       - hooviepack
 
   files-api:
-    build:
-      context: ./apps/api
-      dockerfile: Dockerfile.files
+    # Published from github.com/jjeandervin/file-service. InternalApi__ApiKey below runs it in legacy single-key mode.
+    image: ${FILES_SERVICE_IMAGE:-ghcr.io/jjeandervin/file-service:1.0.0}
     environment:
       ASPNETCORE_ENVIRONMENT: ${APP_ENVIRONMENT:-Development}
       ASPNETCORE_URLS: http://+:8080

@@ -47,9 +47,8 @@ services:
       - hooviepack
 
   files-db-migrations:
-    build:
-      context: ./apps/api
-      dockerfile: Dockerfile.files.migrations
+    # Keep this on the same version as files-api.
+    image: ${FILES_MIGRATIONS_IMAGE:-ghcr.io/jjeandervin/file-service-migrations:1.0.0}
     profiles: ["migration"]
     environment:
       ASPNETCORE_ENVIRONMENT: Production
