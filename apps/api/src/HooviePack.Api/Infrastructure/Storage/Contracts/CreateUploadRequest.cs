@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace HooviePack.Files.Domain;
+namespace HooviePack.Api.Infrastructure.Storage.Contracts;
 
 public sealed class CreateUploadRequest
 {

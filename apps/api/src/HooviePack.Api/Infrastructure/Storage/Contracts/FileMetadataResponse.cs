@@ -1,4 +1,4 @@
-namespace HooviePack.Files.Domain;
+namespace HooviePack.Api.Infrastructure.Storage.Contracts;
 
 public sealed record FileMetadataResponse(
     Guid FileId,

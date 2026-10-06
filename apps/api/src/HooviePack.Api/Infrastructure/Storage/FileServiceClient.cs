@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using HooviePack.Api.Application;
 using HooviePack.Api.Configuration;
-using HooviePack.Files.Domain;
+using HooviePack.Api.Infrastructure.Storage.Contracts;
 using Microsoft.Extensions.Options;
 
 namespace HooviePack.Api.Infrastructure.Storage;

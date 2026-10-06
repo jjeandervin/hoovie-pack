@@ -61,26 +61,21 @@ jobs:
               | grep --quiet --fixed-strings --line-regexp "$migration"
           done
 
-          if "${compose[@]}" config --services | grep --fixed-strings --line-regexp legacy-media-migration; then
-            echo "legacy-media-migration must never be part of the default production service set." >&2
-            exit 1
-          fi
-          "${compose[@]}" --profile media-migration config --services \
-            | grep --quiet --fixed-strings --line-regexp legacy-media-migration
-          media_config_json="$("${compose[@]}" --profile media-migration config --format json)"
+          # The File Service comes from GHCR: both images pinned to the same exact version, never built here.
+          migration_config_json="$("${compose[@]}" --profile migration config --format json)"
           jq --exit-status '
-            .services["legacy-media-migration"].restart == "no"
-            and any(
-              .services["legacy-media-migration"].volumes[];
-              .target == "/legacy-media" and .read_only == true
-            )
-          ' <<<"$media_config_json"
+            (.services["files-api"].image | test("^ghcr[.]io/jjeandervin/file-service:[0-9]+[.][0-9]+[.][0-9]+$"))
+            and (.services["files-db-migrations"].image | test("^ghcr[.]io/jjeandervin/file-service-migrations:[0-9]+[.][0-9]+[.][0-9]+$"))
+            and ((.services["files-api"].image | split(":")[1]) == (.services["files-db-migrations"].image | split(":")[1]))
+            and (.services["files-api"].build == null)
+            and (.services["files-db-migrations"].build == null)
+          ' <<<"$migration_config_json"
 
-          check_line="$(grep --line-number --fixed-strings 'legacy-media-migration --check' scripts/deploy-prod.sh | cut --delimiter=: --fields=1)"
+          migrate_line="$(grep --line-number --fixed-strings 'run --rm --no-TTY files-db-migrations' scripts/deploy-prod.sh | cut --delimiter=: --fields=1)"
           up_line="$(grep --line-number --fixed-strings 'up --detach --no-build' scripts/deploy-prod.sh | cut --delimiter=: --fields=1)"
-          test -n "$check_line"
+          test -n "$migrate_line"
           test -n "$up_line"
-          test "$check_line" -lt "$up_line"
+          test "$migrate_line" -lt "$up_line"
 
           config_json="$("${compose[@]}" config --format json)"
           test "$(jq --raw-output '.services.api.environment.Database__ApplyMigrations' <<<"$config_json")" = "false"
@@ -200,9 +195,6 @@ jobs:
           - name: application
             dockerfile: apps/api/Dockerfile.migrations
             image: hooviepack-db-migrations:ci
-          - name: files
-            dockerfile: apps/api/Dockerfile.files.migrations
-            image: hooviepack-files-db-migrations:ci
     services:
       postgres:
         image: postgres:17-alpine
@@ -280,14 +272,6 @@ jobs:
             context: apps/api
             dockerfile: apps/api/Dockerfile
             image: hooviepack-api:ci
-          - name: files-api
-            context: apps/api
-            dockerfile: apps/api/Dockerfile.files
-            image: hooviepack-files-api:ci
-          - name: legacy-media-migration
-            context: apps/api
-            dockerfile: apps/api/Dockerfile.file-migration
-            image: hooviepack-file-migration:ci
           - name: web
             context: apps/web
             dockerfile: apps/web/Dockerfile

@@ -2,7 +2,7 @@ using System.Security.Claims;
 using HooviePack.Api.Application.Contracts;
 using HooviePack.Api.Infrastructure.Data;
 using HooviePack.Api.Infrastructure.Storage;
-using HooviePack.Files.Domain;
+using HooviePack.Api.Infrastructure.Storage.Contracts;
 using Microsoft.EntityFrameworkCore;
 
 namespace HooviePack.Api.Application.Services;

@@ -21,7 +21,6 @@
   </Target>
 
   <ItemGroup>
-    <ProjectReference Include="..\HooviePack.Files.Domain\HooviePack.Files.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>

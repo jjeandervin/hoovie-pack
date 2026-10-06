@@ -3,7 +3,7 @@ using System.Net.Http.Json;
 using HooviePack.Api.Application;
 using HooviePack.Api.Configuration;
 using HooviePack.Api.Infrastructure.Storage;
-using HooviePack.Files.Domain;
+using HooviePack.Api.Infrastructure.Storage.Contracts;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 

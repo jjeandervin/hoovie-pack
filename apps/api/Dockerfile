@@ -1,11 +1,9 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-COPY src/HooviePack.Files.Domain/HooviePack.Files.Domain.csproj src/HooviePack.Files.Domain/
 COPY src/HooviePack.Api/HooviePack.Api.csproj src/HooviePack.Api/
 RUN dotnet restore src/HooviePack.Api/HooviePack.Api.csproj
 
-COPY src/HooviePack.Files.Domain/ src/HooviePack.Files.Domain/
 COPY src/HooviePack.Api/ src/HooviePack.Api/
 RUN dotnet publish src/HooviePack.Api/HooviePack.Api.csproj \
     --configuration Release \

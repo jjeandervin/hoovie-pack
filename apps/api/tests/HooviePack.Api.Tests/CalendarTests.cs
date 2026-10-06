@@ -5,7 +5,7 @@ using HooviePack.Api.Application.Services;
 using HooviePack.Api.Domain;
 using HooviePack.Api.Infrastructure.Data;
 using HooviePack.Api.Infrastructure.Storage;
-using HooviePack.Files.Domain;
+using HooviePack.Api.Infrastructure.Storage.Contracts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Npgsql;

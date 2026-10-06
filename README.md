@@ -10,9 +10,8 @@ The product and engineering requirements are preserved in [docs/spec.md](docs/sp
 | --- | ---: | --- | --- |
 | Angular web | 80 | `http://localhost:4200` | none |
 | ASP.NET Core API | 8080 | `http://localhost:5000` | none |
-| Internal File Service | 8080 | `http://localhost:5001` (development only) | metadata in `postgres_data`, bytes in S3 |
+| Internal File Service ([`file-service`](https://github.com/jjeandervin/file-service), pinned GHCR image) | 8080 | `http://localhost:5001` (development only) | metadata in `postgres_data`, bytes in S3 |
 | EF Core migration jobs | one-shot | none | none |
-| Legacy media importer | one-shot, explicit profile | none | reads retained `media_data` read-only |
 | PostgreSQL (app) | 5432 | `localhost:5432` | `postgres_data` |
 | Keycloak | 8080 | `http://localhost:8081` | via `keycloak_data` |
 | PostgreSQL (Keycloak) | 5432 | internal only | `keycloak_data` |
@@ -82,7 +81,7 @@ Stop the services without deleting data:
 docker compose down
 ```
 
-To intentionally discard local database state, use `docker compose down --volumes` (or `docker compose down -v`). **This destroys the database volumes and any retained legacy `media_data` migration source; it does not delete S3 objects and cannot be undone without backups. Never run it against production.**
+To intentionally discard local database state, use `docker compose down --volumes` (or `docker compose down -v`). **This destroys the database volumes; it does not delete S3 objects and cannot be undone without backups. Never run it against production.**
 
 ## Debugging
 
@@ -192,24 +191,17 @@ rm -f nuget-vulnerabilities.json
   && npm test && npm run build:production)
 
 docker build --pull -t hooviepack-api:local apps/api
-docker build --pull -f apps/api/Dockerfile.files -t hooviepack-files-api:local apps/api
 docker build --pull -f apps/api/Dockerfile.migrations -t hooviepack-db-migrations:local apps/api
-docker build --pull -f apps/api/Dockerfile.files.migrations -t hooviepack-files-db-migrations:local apps/api
-docker build --pull -f apps/api/Dockerfile.file-migration -t hooviepack-file-migration:local apps/api
 docker build --pull -t hooviepack-web:local apps/web
 trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed \
   --exit-code 1 hooviepack-api:local
 trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed \
-  --exit-code 1 hooviepack-files-api:local
-trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed \
   --exit-code 1 hooviepack-db-migrations:local
-trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed \
-  --exit-code 1 hooviepack-files-db-migrations:local
-trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed \
-  --exit-code 1 hooviepack-file-migration:local
 trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed \
   --exit-code 1 hooviepack-web:local
 ```
+
+The File Service images are built, tested, and scanned in the [`file-service`](https://github.com/jjeandervin/file-service) repository's CI. This repository only pins their version.
 
 PostgreSQL integration tests run when `HOOVIEPACK_TEST_POSTGRES` points to a disposable test database; CI provisions that database automatically. Never use production credentials for local or CI testing, and never commit scan output containing sensitive findings.
 
@@ -295,7 +287,7 @@ Compose maps standard ASP.NET Core settings as follows:
 
 The optional `FileStorage__ServiceUrl` and `FileStorage__ForcePathStyle` settings support isolated SDK-compatible development tests. Leave them empty/false for Amazon S3 production.
 
-The host-side `FILES_AWS_ACCESS_KEY_ID`, `FILES_AWS_SECRET_ACCESS_KEY`, and optional `FILES_AWS_SESSION_TOKEN` are mapped to the AWS SDK's standard names only inside `files-api` and the explicitly invoked legacy importer. Prefer a dedicated workload role when the host platform supports one. The domain API, Angular/web, Keycloak, schema-migration jobs, and Nginx receive no AWS credentials. `FILES_INTERNAL_API_KEY` is a separate secret, not an AWS or database credential, and must be rotated on the API and File Service together.
+The host-side `FILES_AWS_ACCESS_KEY_ID`, `FILES_AWS_SECRET_ACCESS_KEY`, and optional `FILES_AWS_SESSION_TOKEN` are mapped to the AWS SDK's standard names only inside `files-api`. Prefer a dedicated workload role when the host platform supports one. The domain API, Angular/web, Keycloak, schema-migration jobs, and Nginx receive no AWS credentials. `FILES_INTERNAL_API_KEY` is a separate secret, not an AWS or database credential, and must be rotated on the API and File Service together.
 
 ### Private bucket, IAM, CORS, and CSP
 
@@ -357,22 +349,19 @@ dotnet tool run dotnet-ef -- database update \
   --project src/HooviePack.Api/HooviePack.Api.csproj \
   --startup-project src/HooviePack.Api/HooviePack.Api.csproj \
   --context AppDbContext
-
-dotnet tool run dotnet-ef -- database update \
-  --project src/HooviePack.Files.Api/HooviePack.Files.Api.csproj \
-  --startup-project src/HooviePack.Files.Api/HooviePack.Files.Api.csproj \
-  --context FilesDbContext
 ```
 
-Production is deliberately different. [`compose.prod.yaml`](compose.prod.yaml) forces startup migrations off in both services and defines the profile-gated `db-migrations` and `files-db-migrations` one-shot jobs. [`apps/api/Dockerfile.migrations`](apps/api/Dockerfile.migrations) bundles `AppDbContext`; [`apps/api/Dockerfile.files.migrations`](apps/api/Dockerfile.files.migrations) bundles `FilesDbContext`. Neither final image starts an API.
+`FilesDbContext` migrations belong to the [`file-service`](https://github.com/jjeandervin/file-service) repository. Locally, the `files-api` container applies them at startup.
+
+Production is deliberately different. [`compose.prod.yaml`](compose.prod.yaml) forces startup migrations off in both services and defines the profile-gated `db-migrations` and `files-db-migrations` one-shot jobs. [`apps/api/Dockerfile.migrations`](apps/api/Dockerfile.migrations) bundles `AppDbContext`; `files-db-migrations` runs the published `ghcr.io/jjeandervin/file-service-migrations` image, pinned to the same version as `files-api` (`FILES_MIGRATIONS_IMAGE` and `FILES_SERVICE_IMAGE`; upgrade both together). Neither image starts an API.
 
 Both jobs receive the same `POSTGRES_DB`, `POSTGRES_USER`, and `POSTGRES_PASSWORD`-derived `ConnectionStrings__DefaultConnection` as the services. The File Service isolates its tables and EF history in the `files` schema while using the same PostgreSQL database and backup boundary. Populate the values in the ignored production `.env`, ensure `postgres` is reachable, and review and back up both contexts before applying a release. Never put a connection string or credentials in an image or source-controlled file.
 
 Build and run the production migration explicitly from the repository root:
 
 ```bash
-docker compose -f compose.yaml -f compose.prod.yaml build \
-  db-migrations files-db-migrations
+docker compose -f compose.yaml -f compose.prod.yaml build db-migrations
+docker compose -f compose.yaml -f compose.prod.yaml --profile migration pull files-db-migrations
 docker compose -f compose.yaml -f compose.prod.yaml run --rm db-migrations
 docker compose -f compose.yaml -f compose.prod.yaml run --rm files-db-migrations
 ```
@@ -392,42 +381,16 @@ The debug container is stopped, not long-running; remove it after inspection. Us
 
 ## Existing media migration
 
-The previous implementation stored relative local paths in `Users.AvatarStoragePath`, `DogProfiles.PhotoStoragePath`, and `PostPhotos.StoragePath`, with bytes in `media_data` for Compose or an ignored `media` directory for a directly run API. The repository does not contain production data and cannot prove that a deployed volume is empty. The S3 cutover therefore retains the legacy columns and declares `media_data` for an explicit migration/rollback window, but the normal API no longer mounts or writes that volume.
+Media used to be stored on local disk, with relative paths in `Users.AvatarStoragePath`, `DogProfiles.PhotoStoragePath`, and `PostPhotos.StoragePath` and the bytes in the `media_data` volume. That media has been imported into S3, and every deployment since the S3 cutover verified that no legacy reference was left before starting the application.
 
-No file-byte copy runs during service startup or the normal deployment wrapper. Before the first S3-only production release, an operator must perform and record this procedure:
+The importer (`HooviePack.FileMigration`), its deployment check, and the `media_data` volume declaration were removed when the File Service moved to its own repository. They remain in git history before that change if they are ever needed again. The legacy path columns are still in the database.
 
-1. Inventory every non-null legacy path in all three tables and every file in the production `media_data` volume. Record reference counts, byte counts, missing referenced files, duplicate references, and unreferenced files. Also check any host-run API `media` directory used by that deployment.
-2. If and only if the verified inventory contains zero referenced files, record that result and proceed without a content import. Do not infer this from the checkout or from a newly created empty volume.
-3. If referenced files exist, take tested database and read-only media backups, announce a maintenance window, and stop all upload/edit writers. The old API must not accept new local uploads while the inventory/import runs:
+Removing the declaration does not delete the volume. The production host keeps the original media in it until it is removed by hand. After the rollback period, and once a restore of the database and S3 has been tested, check it and remove it:
 
-   ```bash
-   docker compose -f compose.yaml -f compose.prod.yaml stop web api
-   ```
-4. Apply the additive `AppDbContext` and `FilesDbContext` migrations. Do not drop or overwrite legacy path columns. Build the profile-only `legacy-media-migration` image from the same reviewed checkout.
-5. Run its dry-run inventory first. Compose mounts `media_data` at `/legacy-media` read-only, and the utility reports database references, unique source paths, unreferenced files, missing sources, and objects requiring migration:
-
-   ```bash
-   docker compose -f compose.yaml -f compose.prod.yaml build \
-     db-migrations files-db-migrations legacy-media-migration
-   docker compose -f compose.yaml -f compose.prod.yaml run --rm db-migrations
-   docker compose -f compose.yaml -f compose.prod.yaml run --rm files-db-migrations
-   docker compose -f compose.yaml -f compose.prod.yaml run --rm \
-     legacy-media-migration --dry-run
-   ```
-
-6. Review and preserve the dry-run output. During the maintenance window, run the same utility without `--dry-run`:
-
-   ```bash
-   docker compose -f compose.yaml -f compose.prod.yaml run --rm \
-     legacy-media-migration
-   ```
-
-   The importer derives size from the source, creates File Service metadata, uploads and verifies the S3 object, and backfills domain `FileId` references. `files.Files.LegacySourcePath` durably reuses the same mapping, so a failed run can be corrected and rerun without generating a second object. The source mount is read-only and is never deleted.
-7. Require a zero-failure migration result, then verify every migrated domain reference has exactly one File Service metadata row and readable S3 object of the expected size/content type. Exercise authorized and unauthorized URL issuance, direct download, replacement, and deletion against representative avatars, dog photos, and post photos.
-8. Only after verification, run the normal deployment wrapper to start the S3-only API/web stack. As a final fail-closed safeguard, the wrapper runs the importer's read-only `--check` mode and exits before replacing any application container if a legacy reference still needs migration. Retain the legacy database columns, volume, inventory report, and backup for the approved rollback period.
-9. Remove legacy columns and the retained volume only in a later reviewed cleanup release and only after backup restoration and migration reconciliation have been tested.
-
-The write-capable importer is deliberately absent from normal `up` and is never invoked by `deploy-prod.sh`. It runs only when explicitly targeted without `--dry-run` or `--check`. The deployment wrapper invokes only the non-mutating completion check. If inventory, migration, or that gate reports a missing/failed referenced file, the production cutover is blocked. Do not deploy the S3-only API and do not delete or detach the only readable legacy source until the discrepancy is resolved and the rerun verifies cleanly.
+```bash
+docker volume ls --filter name=media_data
+docker volume rm hooviepack_media_data
+```
 
 ## Production deployment on Linux
 
@@ -503,7 +466,7 @@ Adapt the syntax to the external proxy and preserve its normal forwarded headers
 
 ### 3. Start and verify
 
-After completing any required existing-media procedure, back up PostgreSQL and the S3 bucket, fetch the reviewed release, and run the production deployment wrapper. The script uses `set -Eeuo pipefail`, validates Compose, pulls third-party images, builds both APIs, both schema-migration bundles, and the legacy verification image from the same checkout, runs `AppDbContext` and then `FilesDbContext` migrations, verifies that no legacy media reference remains, and only then updates the application stack. A schema migration or legacy verification failure exits before `up`:
+Back up PostgreSQL and the S3 bucket, fetch the reviewed release, and run the production deployment wrapper. The script uses `set -Eeuo pipefail`, validates Compose, pulls the pinned images (including both File Service images), builds the API, web, and `AppDbContext` migration bundle from the same checkout, runs `AppDbContext` and then `FilesDbContext` migrations, and only then updates the application stack. A schema migration failure exits before `up`:
 
 ```bash
 cd /opt/hooviepack
@@ -515,16 +478,13 @@ The expanded command order in [`scripts/deploy-prod.sh`](scripts/deploy-prod.sh)
 
 ```text
 1. docker compose ... config --quiet
-2. docker compose ... pull --ignore-buildable
-3. docker compose ... build --pull web api files-api db-migrations files-db-migrations legacy-media-migration
+2. docker compose ... --profile migration pull --ignore-buildable
+3. docker compose ... build --pull web api db-migrations
 4. docker compose ... run --rm --no-TTY db-migrations
 5. docker compose ... run --rm --no-TTY files-db-migrations
-6. docker compose ... run --rm --no-TTY legacy-media-migration --check
-7. docker compose ... up --detach --no-build files-api api web postgres keycloak-db keycloak
-8. docker compose ... ps
+6. docker compose ... up --detach --no-build files-api api web postgres keycloak-db keycloak
+7. docker compose ... ps
 ```
-
-Step 6 reads the databases and the read-only legacy volume only. It does not create File Service records, upload objects, backfill references, or delete source bytes.
 
 After the script succeeds, inspect application logs and health:
 
@@ -564,7 +524,7 @@ git pull --ff-only
 bash scripts/deploy-prod.sh
 ```
 
-Back up first and review pending migrations for both DbContexts. Schema changes that are incompatible with the running services require a coordinated maintenance window or expand/contract rollout. Do not use `docker compose down -v` during an upgrade: it destroys both database volumes and any retained legacy-media migration source. It does not roll back or remove S3 objects.
+Back up first and review pending migrations for both DbContexts. Schema changes that are incompatible with the running services require a coordinated maintenance window or expand/contract rollout. Do not use `docker compose down -v` during an upgrade: it destroys both database volumes. It does not roll back or remove S3 objects.
 
 ## Backups and security checklist
 
@@ -578,7 +538,7 @@ docker compose exec -T keycloak-db sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES
   | gzip > "backups/keycloak-$(date +%F-%H%M%S).sql.gz"
 ```
 
-Back up private S3 objects with a tested, encrypted strategy such as bucket versioning plus a separately controlled backup or replication target. Test restoration of PostgreSQL file metadata/domain references and S3 objects to a consistent recovery point. During the legacy migration/rollback window, also archive `media_data`; after a verified cleanup it is no longer part of normal application backup.
+Back up private S3 objects with a tested, encrypted strategy such as bucket versioning plus a separately controlled backup or replication target. Test restoration of PostgreSQL file metadata/domain references and S3 objects to a consistent recovery point. Until the retained `media_data` volume is removed, archive it as well.
 
 Before exposing the service:
 

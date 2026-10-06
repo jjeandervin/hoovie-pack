@@ -1,6 +1,6 @@
 using HooviePack.Api.Application.Contracts;
 using HooviePack.Api.Application.Services;
-using HooviePack.Files.Domain;
+using HooviePack.Api.Infrastructure.Storage.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
