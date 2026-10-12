@@ -7,7 +7,7 @@ COPY src ./src
 COPY public ./public
 RUN npm run build:production
 
-FROM nginx:1.29-alpine AS runtime
+FROM nginx:1.31-alpine AS runtime
 RUN apk upgrade --no-cache \
     && apk add --no-cache gettext
 COPY nginx.conf /etc/nginx/conf.d/default.conf
