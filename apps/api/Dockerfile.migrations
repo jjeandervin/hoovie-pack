@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS bundle
+FROM mcr.microsoft.com/dotnet/sdk:11.0 AS bundle
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
